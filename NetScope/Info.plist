@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>NetScope</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+
+    <!-- Discover devices that advertise Bonjour/mDNS services -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>NetScope discovers devices on your local network — printers, Apple TVs, speakers, NAS and smart-home gear that advertise themselves.</string>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_airplay._tcp</string>
+        <string>_raop._tcp</string>
+        <string>_googlecast._tcp</string>
+        <string>_spotify-connect._tcp</string>
+        <string>_sonos._tcp</string>
+        <string>_ipp._tcp</string>
+        <string>_printer._tcp</string>
+        <string>_pdl-datastream._tcp</string>
+        <string>_hap._tcp</string>
+        <string>_companion-link._tcp</string>
+        <string>_device-info._tcp</string>
+        <string>_smb._tcp</string>
+        <string>_afpovertcp._tcp</string>
+        <string>_ssh._tcp</string>
+        <string>_http._tcp</string>
+        <string>_amzn-wplay._tcp</string>
+        <string>_nvstream._tcp</string>
+    </array>
+
+    <!-- Location stamps speed-test results with where they were run (Coverage Map),
+         and is also required by iOS to read the Wi-Fi SSID with the Access Wi-Fi
+         Information capability. Optional — tests work without it. -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>NetScope adds your location to speed-test results so you can map where each test was run, and uses it to read the name of the Wi-Fi network you are connected to. Location is optional — tests work without it.</string>
+</dict>
+</plist>

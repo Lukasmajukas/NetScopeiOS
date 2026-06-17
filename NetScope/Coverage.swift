@@ -133,10 +133,6 @@ func tileCorners(_ t: SpeedTile) -> [CLLocationCoordinate2D] {
     ]
 }
 
-/// Fill opacity grows a little with how many tests landed in the cell — more
-/// confident tiles read as more solid.
-func tileOpacity(_ t: SpeedTile) -> Double { min(0.8, 0.42 + Double(t.count) * 0.08) }
-
 /// Region that frames all tiles, with padding.
 func coverageRegion(for tiles: [SpeedTile]) -> MKCoordinateRegion {
     let lats = tiles.map(\.lat), lons = tiles.map(\.lon)
@@ -288,9 +284,11 @@ struct CoverageMapView: View {
                 MapReader { proxy in
                     Map(position: $camera) {
                         ForEach(tiles) { t in
+                            // Solid colour square per tile (one flat colour by speed),
+                            // with a crisp matching edge.
                             MapPolygon(coordinates: tileCorners(t))
-                                .foregroundStyle(tileColor(t.down).opacity(tileOpacity(t)))
-                                .stroke(tileColor(t.down).opacity(0.85), lineWidth: 0.6)
+                                .foregroundStyle(tileColor(t.down))
+                                .stroke(tileColor(t.down), lineWidth: 1)
                         }
                         UserAnnotation()
                     }

@@ -26,8 +26,12 @@ extension Color {
 // MARK: - Liquid Glass helper (iOS 26+)
 
 extension View {
-    /// Liquid Glass capsule for action buttons. Available under the iOS-27 target.
-    func nsGlassCapsule(tinted: Bool = true) -> some View {
+    /// Liquid Glass capsule for action buttons. Defaults to a NEUTRAL (untinted)
+    /// glass: our button labels are `Color.nsAccent`, so an accent *tint* would
+    /// make accent text vanish into a same-colour capsule. Neutral frosted glass
+    /// keeps the accent text legible. Opt into the accent tint only with a
+    /// contrasting label colour.
+    func nsGlassCapsule(tinted: Bool = false) -> some View {
         glassEffect(tinted ? .regular.tint(.nsAccent) : .regular, in: .capsule)
     }
 }

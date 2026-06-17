@@ -18,6 +18,7 @@
 		E1CA7A1090000000000000F2 /* Pro.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CA7A1090000000000000F1 /* Pro.swift */; };
 		E2CA7A1090000000000000F2 /* Coverage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CA7A1090000000000000F1 /* Coverage.swift */; };
 		E3CA7A1090000000000000F2 /* Enrichment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3CA7A1090000000000000F1 /* Enrichment.swift */; };
+		E4CA7A1090000000000000F2 /* Tools.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CA7A1090000000000000F1 /* Tools.swift */; };
 		F6FFD706A28A4C869BBB2A2C /* SpeedTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 812687E90FA284CF298A7EE2 /* SpeedTest.swift */; };
 		F8CDCAF9A651BE42333D0C01 /* SpeedTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC9BA87B043948363739AFB5 /* SpeedTestView.swift */; };
 /* End PBXBuildFile section */
@@ -36,6 +37,7 @@
 		E1CA7A1090000000000000F1 /* Pro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pro.swift; sourceTree = "<group>"; };
 		E2CA7A1090000000000000F1 /* Coverage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coverage.swift; sourceTree = "<group>"; };
 		E3CA7A1090000000000000F1 /* Enrichment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enrichment.swift; sourceTree = "<group>"; };
+		E4CA7A1090000000000000F1 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
 		D7FCC39FA844DE335DF92150 /* NetScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetScopeApp.swift; sourceTree = "<group>"; };
 		F5A3A0888F775EF4298ECA84 /* Learn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Learn.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -57,6 +59,7 @@
 				E1CA7A1090000000000000F1 /* Pro.swift */,
 				E2CA7A1090000000000000F1 /* Coverage.swift */,
 				E3CA7A1090000000000000F1 /* Enrichment.swift */,
+				E4CA7A1090000000000000F1 /* Tools.swift */,
 				4959D1B86F583678D4A84329 /* Theme.swift */,
 			);
 			path = NetScope;
@@ -159,6 +162,7 @@
 				E1CA7A1090000000000000F2 /* Pro.swift in Sources */,
 				E2CA7A1090000000000000F2 /* Coverage.swift in Sources */,
 				E3CA7A1090000000000000F2 /* Enrichment.swift in Sources */,
+				E4CA7A1090000000000000F2 /* Tools.swift in Sources */,
 				A3A48E69B6ECF47B63AD30AA /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

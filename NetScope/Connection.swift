@@ -36,8 +36,10 @@ final class ConnectionMonitor {
     // Public side (works on Wi-Fi and cellular)
     var publicIP = ""
     var isp = ""
+    var asn = ""
     var city = ""
     var region = ""
+    var hasIPv6 = false
 
     var isCellular: Bool { networkType == "Cellular" }
 
@@ -94,6 +96,7 @@ final class ConnectionMonitor {
                 else { self.networkType = self.online ? "Other" : "Offline" }
 
                 self.localIP = Self.localIP(cellular: self.networkType == "Cellular") ?? ""
+                self.hasIPv6 = Self.hasGlobalIPv6()
                 self.readCellular()
 
                 if self.networkType == "Wi-Fi" {
@@ -203,6 +206,7 @@ final class ConnectionMonitor {
         region = (j["region"] as? String) ?? ""
         let org = (j["org"] as? String) ?? ""
         if let r = org.range(of: #"^AS\d+\s+"#, options: .regularExpression) {
+            asn = String(org[r].dropFirst(2).trimmingCharacters(in: .whitespaces))
             isp = String(org[r.upperBound...])
         } else {
             isp = org
@@ -236,6 +240,28 @@ final class ConnectionMonitor {
         }
         freeifaddrs(ifaddr)
         return v4 ?? v6
+    }
+
+    /// True if any active interface has a global (non-link-local, non-loopback)
+    /// IPv6 address — i.e. the device actually has IPv6 connectivity.
+    static func hasGlobalIPv6() -> Bool {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return false }
+        defer { freeifaddrs(ifaddr) }
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        while let cur = ptr {
+            defer { ptr = cur.pointee.ifa_next }
+            let flags = Int32(cur.pointee.ifa_flags)
+            guard let sa = cur.pointee.ifa_addr,
+                  (flags & (IFF_UP | IFF_RUNNING)) == (IFF_UP | IFF_RUNNING),
+                  sa.pointee.sa_family == UInt8(AF_INET6) else { continue }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            getnameinfo(sa, socklen_t(sa.pointee.sa_len),
+                        &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
+            let addr = String(cString: host)
+            if !addr.isEmpty, !addr.hasPrefix("fe80"), addr != "::1" { return true }
+        }
+        return false
     }
 }
 
@@ -367,6 +393,7 @@ struct ConnectionView: View {
     var body: some View {
         Screen("Connection") {
             hero
+            qualityCard
             if conn.isCellular { cellularDetail } else { wifiDetail }
             mapCard
             internetCard
@@ -562,8 +589,54 @@ struct ConnectionView: View {
             row("Status", conn.online ? "Online" : "Offline")
             row("Public IP", conn.publicIP.isEmpty ? "…" : conn.publicIP)
             row(conn.isCellular ? "Carrier" : "ISP", conn.isp.isEmpty ? "…" : conn.isp)
+            if !conn.asn.isEmpty { row("Network", "AS\(conn.asn)") }
+            row("IPv6", conn.hasIPv6 ? "Available" : "Not detected")
         }
     }
+
+    // MARK: Connection quality (derived from the latest speed test)
+
+    private var quality: (score: Int, label: String, color: Color)? {
+        guard let r = history.items.first else { return nil }
+        var s = 0
+        s += r.downloadMbps >= 200 ? 40 : r.downloadMbps >= 50 ? 30 : r.downloadMbps >= 10 ? 18 : 8
+        s += r.pingMs <= 25 ? 35 : r.pingMs <= 60 ? 26 : r.pingMs <= 120 ? 14 : 5
+        s += r.jitterMs <= 5 ? 25 : r.jitterMs <= 15 ? 16 : 6
+        let label = s >= 85 ? "Excellent" : s >= 65 ? "Good" : s >= 40 ? "Fair" : "Poor"
+        let color: Color = s >= 85 ? .nsOk : s >= 65 ? Color(hex: 0x37d67a)
+                         : s >= 40 ? Color(hex: 0xffa726) : Color(hex: 0xff6b6b)
+        return (s, label, color)
+    }
+
+    @ViewBuilder
+    private var qualityCard: some View {
+        if let q = quality, let r = history.items.first {
+            Card("Connection quality") {
+                HStack(spacing: 16) {
+                    ZStack {
+                        Circle().stroke(Color.nsSurface2, lineWidth: 8)
+                        Circle().trim(from: 0, to: Double(q.score) / 100)
+                            .stroke(q.color, style: .init(lineWidth: 8, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: q.score)
+                        Text("\(q.score)").font(.title3.weight(.bold).monospacedDigit())
+                            .foregroundStyle(Color.nsTxt).contentTransition(.numericText())
+                    }
+                    .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(q.label).font(.title3.weight(.semibold)).foregroundStyle(q.color)
+                        Text("\(Int(r.downloadMbps.rounded())) Mbps · \(Int(r.pingMs.rounded())) ms ping · \(fmtJitter(r.jitterMs)) ms jitter")
+                            .font(.caption).foregroundStyle(Color.nsMuted)
+                        Text("From your most recent speed test.")
+                            .font(.caption2).foregroundStyle(Color.nsFaint)
+                    }
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    private func fmtJitter(_ v: Double) -> String { String(format: "%.1f", v) }
 
     private var note: some View {
         Card {

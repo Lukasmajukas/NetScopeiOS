@@ -26,7 +26,46 @@ struct LearnView: View {
                 bullet("Ping", "round-trip delay in milliseconds. Lower is snappier; under ~40 ms feels instant, and it matters most for gaming and calls.")
                 bullet("Jitter", "how much the ping wobbles. High jitter causes choppy calls even if the average ping looks fine.")
             }
+
+            topic("globe", "DNS — the internet's address book",
+                "Before your device can load a site it asks a DNS server to turn the name (apple.com) into an IP address. Slow or flaky DNS makes pages feel sluggish even on a fast connection. The Tools tab can resolve a name and show the answers.")
+            topic("gauge.with.needle", "Latency vs. bandwidth",
+                "Bandwidth is how much data fits through at once (Mbps); latency is how long a round trip takes (ms). A 1 Gbps link with 200 ms latency still feels slow for calls and gaming — for those, low latency matters more than raw speed.")
+            topic("6.circle", "IPv6",
+                "The internet is running out of old-style IPv4 addresses, so networks are rolling out IPv6 — vastly more addresses and often a more direct path. Most modern carriers and ISPs now hand out IPv6; the Connection tab shows whether yours is active.")
+            topic("lock.shield", "VPNs",
+                "A VPN tunnels your traffic through another server, hiding your IP and encrypting the hop to that server. It usually adds a little latency and can cap speed, since everything detours through the VPN. NetScope flags when a test ran over a VPN.")
+            topic("speedometer", "Throttling",
+                "Some ISPs deliberately slow specific traffic (video, certain apps, or once you pass a data cap). If streaming is slow but your speed test is fast — or vice-versa — throttling may be the cause. Running tests at different times helps spot a pattern.")
+
+            Card("Good numbers to aim for") {
+                aim("Video calls", "3–5 Mbps up & down · ping < 100 ms · jitter < 30 ms")
+                aim("HD / 4K streaming", "5 Mbps for HD, 25 Mbps for 4K per stream")
+                aim("Online gaming", "ping < 50 ms matters far more than raw speed")
+                aim("Big downloads / backups", "the more download (and upload) Mbps the better")
+            }
         }
+    }
+
+    private func topic(_ icon: String, _ title: String, _ body: String) -> some View {
+        Card {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon).foregroundStyle(Color.nsAccent).frame(width: 22).padding(.top, 1)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.headline).foregroundStyle(Color.nsTxt)
+                    Text(body).font(.caption).foregroundStyle(Color.nsMuted)
+                }
+            }
+        }
+    }
+
+    private func aim(_ k: String, _ v: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(k).font(.subheadline.weight(.semibold)).foregroundStyle(Color.nsTxt)
+            Text(v).font(.caption).foregroundStyle(Color.nsMuted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 4)
     }
 
     private let widths: [(String, String)] = [

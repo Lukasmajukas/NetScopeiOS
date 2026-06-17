@@ -41,11 +41,11 @@ struct ContentView: View {
 
     private static func clampedStartTab() -> Int {
         let raw = UserDefaults.standard.integer(forKey: "startTab")
-        return (0...3).contains(raw) ? raw : 0
+        return (0...4).contains(raw) ? raw : 0
     }
 
-    // Tags currently on screen (Devices/tag 1 is hidden on cellular).
-    private var presentTags: [Int] { conn.isCellular ? [0, 2, 3] : [0, 1, 2, 3] }
+    // Tags currently on screen (Devices/tag 1 is hidden on cellular). Tools is tag 4.
+    private var presentTags: [Int] { conn.isCellular ? [0, 2, 4, 3] : [0, 1, 2, 4, 3] }
 
     // A selection that always resolves to a tab that is actually present, so a
     // hidden or out-of-range tag can never leave the TabView blank. The stored
@@ -74,6 +74,9 @@ struct ContentView: View {
                           ? "antenna.radiowaves.left.and.right" : "wifi")
                 }
                 .tag(2)
+            ToolsView()
+                .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
+                .tag(4)
             LearnView()
                 .tabItem { Label("Learn", systemImage: "book") }
                 .tag(3)

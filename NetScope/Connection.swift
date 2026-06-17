@@ -258,8 +258,12 @@ final class ConnectionMonitor {
             var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             getnameinfo(sa, socklen_t(sa.pointee.sa_len),
                         &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
-            let addr = String(cString: host)
-            if !addr.isEmpty, !addr.hasPrefix("fe80"), addr != "::1" { return true }
+            let addr = String(cString: host).lowercased()
+            // Count only a genuinely global address: skip link-local (fe80::/10),
+            // loopback (::1), unique-local (fc00::/7 → fc/fd) and site-local (fec0).
+            if !addr.isEmpty, addr != "::1",
+               !addr.hasPrefix("fe80"), !addr.hasPrefix("fc"),
+               !addr.hasPrefix("fd"), !addr.hasPrefix("fec0") { return true }
         }
         return false
     }
@@ -597,7 +601,9 @@ struct ConnectionView: View {
     // MARK: Connection quality (derived from the latest speed test)
 
     private var quality: (score: Int, label: String, color: Color)? {
-        guard let r = history.items.first else { return nil }
+        // Only score a real, completed test — a zero-download row (failed/garbage)
+        // would otherwise score 0 ms ping + 0 ms jitter as "perfect".
+        guard let r = history.items.first, r.downloadMbps > 0 else { return nil }
         var s = 0
         s += r.downloadMbps >= 200 ? 40 : r.downloadMbps >= 50 ? 30 : r.downloadMbps >= 10 ? 18 : 8
         s += r.pingMs <= 25 ? 35 : r.pingMs <= 60 ? 26 : r.pingMs <= 120 ? 14 : 5

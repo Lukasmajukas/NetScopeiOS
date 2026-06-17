@@ -64,19 +64,24 @@ final class ToolsModel {
         }
     }
 
-    /// Best (minimum) of three timed HTTPS HEAD requests, in ms; nil on failure.
-    nonisolated static func latency(_ host: String) async -> Double? {
-        guard let url = URL(string: "https://\(host)/") else { return nil }
+    /// One shared ephemeral session for all probes — a per-call session would
+    /// leak, since URLSessions retain themselves until explicitly invalidated.
+    nonisolated static let probeSession: URLSession = {
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 5
         cfg.waitsForConnectivity = false
-        let session = URLSession(configuration: cfg)
+        return URLSession(configuration: cfg)
+    }()
+
+    /// Best (minimum) of three timed HTTPS HEAD requests, in ms; nil on failure.
+    nonisolated static func latency(_ host: String) async -> Double? {
+        guard let url = URL(string: "https://\(host)/") else { return nil }
         var best: Double?
         for _ in 0..<3 {
             var req = URLRequest(url: url)
             req.httpMethod = "HEAD"
             let t0 = Date()
-            if (try? await session.data(for: req)) != nil {
+            if (try? await probeSession.data(for: req)) != nil {
                 let ms = Date().timeIntervalSince(t0) * 1000
                 best = min(best ?? ms, ms)
             }
@@ -120,9 +125,10 @@ final class ToolsModel {
 
     func checkReachable() async {
         let host = reachHost.trimmingCharacters(in: .whitespaces)
-        guard !host.isEmpty, let portNum = UInt16(reachPort.trimmingCharacters(in: .whitespaces)),
+        guard !host.isEmpty,
+              let portNum = UInt16(reachPort.trimmingCharacters(in: .whitespaces)), portNum > 0,
               let port = NWEndpoint.Port(rawValue: portNum) else {
-            reachState = "Enter a host and a valid port"; reachOK = false; return
+            reachState = "Enter a host and a valid port (1–65535)"; reachOK = false; return
         }
         reachChecking = true; reachState = "Checking…"; reachOK = nil
         defer { reachChecking = false }
@@ -140,7 +146,7 @@ final class ToolsModel {
                 case .ready:
                     if gate.fire() { cont.resume(returning: true); conn.cancel() }
                 case .failed, .cancelled:
-                    if gate.fire() { cont.resume(returning: false) }
+                    if gate.fire() { cont.resume(returning: false); conn.cancel() }
                 default: break
                 }
             }

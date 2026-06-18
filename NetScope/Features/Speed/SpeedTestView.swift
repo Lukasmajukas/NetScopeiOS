@@ -61,6 +61,7 @@ struct SpeedGauge: View {
 struct SpeedTestView: View {
     @State private var engine = SpeedTestEngine()
     @State private var directory = ServerDirectory()
+    @State private var summarizer = AISummarizer()
     @Environment(HistoryStore.self) private var history
     @Environment(ConnectionMonitor.self) private var connection
     @Environment(LocationProvider.self) private var location

@@ -329,7 +329,7 @@ struct SpeedTestView: View {
                 Text("TEST SERVER")
                     .font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(Color.nsMuted)
                 Spacer()
-                Button { Task { await directory.refresh() } } label: {
+                Button { Task { await directory.refresh(repingLibre: true) } } label: {
                     Image(systemName: "arrow.clockwise")
                         .symbolEffect(.rotate, options: .repeating, isActive: directory.loading)
                         .foregroundStyle(Color.nsAccent)

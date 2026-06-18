@@ -259,6 +259,48 @@ struct SpeedTestView: View {
 
     // MARK: Server / location picker
 
+    // MARK: Apple Intelligence summary
+
+    @ViewBuilder
+    private var aiCard: some View {
+        // Only when on-device Apple Intelligence is available and there's a result to read.
+        if summarizer.isAvailable, let latest = history.items.first {
+            Card {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(Color.nsAccent)
+                        .symbolEffect(.variableColor.iterative, isActive: summarizer.state == .generating)
+                    Text("APPLE INTELLIGENCE")
+                        .font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(Color.nsMuted)
+                    Spacer()
+                }
+                switch summarizer.state {
+                case .idle:
+                    Button { Task { await summarizer.summarize(latest) } } label: {
+                        Text("Summarise my connection").font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.nsAccent)
+                            .padding(.horizontal, 14).padding(.vertical, 9)
+                            .nsGlassCapsule()
+                    }
+                case .generating:
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Thinking on-device…").font(.caption).foregroundStyle(Color.nsFaint)
+                    }
+                case .done(let text):
+                    Text(text).font(.subheadline).foregroundStyle(Color.nsTxt)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button("Regenerate") { Task { await summarizer.summarize(latest) } }
+                        .font(.caption2).foregroundStyle(Color.nsFaint)
+                case .failed(let msg):
+                    Text(msg).font(.caption).foregroundStyle(Color.nsFaint)
+                }
+                Text("Generated on-device by Apple Intelligence — nothing leaves your iPhone.")
+                    .font(.caption2).foregroundStyle(Color.nsFaint)
+            }
+        }
+    }
+
     private var serverCard: some View {
         Card {
             HStack {

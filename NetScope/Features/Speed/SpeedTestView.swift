@@ -159,15 +159,20 @@ struct SpeedTestView: View {
                 .environment(location)
                 .environment(pro)
         }
-        .sheet(isPresented: $showMLabConsent) {
-            MLabConsentSheet(
+        .sheet(isPresented: $showConsent) {
+            ServerConsentSheet(
+                provider: consentProvider,
                 place: directory.selected.shortPlace,
                 onAgree: {
-                    mlabConsented = true
-                    showMLabConsent = false
+                    switch consentProvider {
+                    case .mlab:       mlabConsented = true
+                    case .librespeed: libreConsented = true
+                    case .cloudflare: break
+                    }
+                    showConsent = false
                     engine.start(runContext(), server: directory.selected)
                 },
-                onCancel: { showMLabConsent = false })
+                onCancel: { showConsent = false })
         }
         .onAppear {
             // A new saved result invalidates any prior AI summary.

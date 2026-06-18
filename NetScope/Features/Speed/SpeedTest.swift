@@ -919,8 +919,12 @@ enum MLabLocate {
         return URLSession(configuration: cfg)
     }()
 
-    static func fetch() async -> [SpeedServer] {
-        guard let url = URL(string: "https://locate.measurementlab.net/v2/nearest/ndt/ndt7") else { return [] }
+    static func fetch(country: String? = nil) async -> [SpeedServer] {
+        var comps = URLComponents(string: "https://locate.measurementlab.net/v2/nearest/ndt/ndt7")
+        if let country, !country.isEmpty {
+            comps?.queryItems = [URLQueryItem(name: "country", value: country)]
+        }
+        guard let url = comps?.url else { return [] }
         var req = URLRequest(url: url)
         req.setValue("NetScope-iOS/1.0 (network diagnostics)", forHTTPHeaderField: "User-Agent")
         guard let (d, _) = try? await session.data(for: req),

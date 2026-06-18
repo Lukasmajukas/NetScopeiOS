@@ -5,3 +5,7 @@ DerivedData/
 xcuserdata/
 *.swiftpm
 .netrc
+
+# Local auto-deploy hook artifacts (machine-specific)
+.auto-deploy.log
+.auto-deploy.state

@@ -70,8 +70,13 @@ struct SpeedTestView: View {
     // One-time informed consent before the first M-Lab test, since M-Lab
     // publishes every test (incl. the user's IP) as open data. Bump the key
     // suffix if the disclosure text materially changes, to re-prompt.
+    // One-time informed consent before the first test against each external backbone
+    // (M-Lab publishes results as open data; LibreSpeed servers are third-party donated
+    // hosts). Cloudflare needs none. Bump the key suffix if the disclosure text changes.
     @AppStorage("mlabConsentAcceptedV1") private var mlabConsented = false
-    @State private var showMLabConsent = false
+    @AppStorage("libreConsentAcceptedV1") private var libreConsented = false
+    @State private var showConsent = false
+    @State private var consentProvider: SpeedServer.Provider = .mlab
 
     /// Starts a test, but routes the first M-Lab run through a consent prompt
     /// (M-Lab publishes results, including the user's IP, as open data).

@@ -127,6 +127,7 @@ struct SpeedTestView: View {
                 if engine.phase == .failed { failedNote }
                 runButton
             }
+            aiCard
             serverCard
             trendCard
             historyCard

@@ -21,12 +21,17 @@ final class AISummarizer {
     }
     var state: State = .idle
 
-    /// True only when the on-device model is present AND enabled by the user.
-    var isAvailable: Bool {
+    /// Cached so SwiftUI body re-evaluations during a running test don't re-hit the
+    /// Foundation Models availability API ~5×/sec. Refreshed via `refreshAvailability()`.
+    private(set) var available = false
+
+    /// True only when the on-device model is present AND enabled by the user. Call from
+    /// the view's `.onAppear` (and it self-checks again inside `summarize`).
+    func refreshAvailability() {
         #if canImport(FoundationModels)
-        if case .available = SystemLanguageModel.default.availability { return true }
+        if case .available = SystemLanguageModel.default.availability { available = true; return }
         #endif
-        return false
+        available = false
     }
 
     func summarize(_ r: SpeedResult) async {

@@ -869,10 +869,27 @@ final class ServerDirectory {
     /// button); country-change refreshes leave it false so we don't re-ping donated hosts
     /// on every menu tap.
     func refresh(repingLibre: Bool = false) async {
-        guard !loading else { return }
+        // A refresh requested while one is running is coalesced, not dropped, so a rapid
+        // country change still ends with a fetch for the country the user last picked.
+        if loading {
+            pendingRefresh = true
+            pendingReping = pendingReping || repingLibre
+            return
+        }
         loading = true
         defer { loading = false }
 
+        var reping = repingLibre
+        while true {
+            await performRefresh(repingLibre: reping)
+            if !pendingRefresh { break }
+            pendingRefresh = false
+            reping = pendingReping
+            pendingReping = false
+        }
+    }
+
+    private func performRefresh(repingLibre: Bool) async {
         if libreCache.isEmpty {
             var ls = await LibreSpeed.fetch()
             await Self.ping(&ls)            // first load: fetch + ping

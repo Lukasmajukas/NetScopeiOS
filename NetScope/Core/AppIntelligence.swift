@@ -39,6 +39,8 @@ final class AISummarizer {
     }
 
     func summarize(_ r: SpeedResult) async {
+        generation += 1
+        let token = generation
         #if canImport(FoundationModels)
         guard case .available = SystemLanguageModel.default.availability else {
             state = .failed("Apple Intelligence isn't available on this device.")

@@ -389,14 +389,27 @@ final class SpeedTestEngine: NSObject {
 
     private func launch(_ dir: Dir) {
         let task: URLSessionTask
-        switch dir {
-        case .download:
+        switch (server.provider, dir) {
+        case (.cloudflare, .download):
             task = stream.dataTask(with: request("/__down?bytes=100000000"))
-        case .upload:
+        case (.cloudflare, .upload):
             var req = request("/__up")
             req.httpMethod = "POST"
             req.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
             task = stream.uploadTask(with: req, from: uploadBody)
+        case (.librespeed, .download):
+            // garbage.php?ckSize=N streams ~N MB; finite, so the relaunch-on-complete
+            // machinery keeps the pipe full just like Cloudflare's sized download.
+            guard let url = server.downloadURL else { return }
+            task = stream.dataTask(with: URLRequest(url: url))
+        case (.librespeed, .upload):
+            guard let url = server.uploadURL else { return }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+            task = stream.uploadTask(with: req, from: uploadBody)
+        default:
+            return   // M-Lab uses the NDT7 WebSocket path, not these HTTP streams
         }
         // Tag the task with its direction so a stale completion can't relaunch
         // into the wrong phase (a cancelled download must not spawn an upload).

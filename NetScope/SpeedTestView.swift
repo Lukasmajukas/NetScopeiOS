@@ -60,11 +60,28 @@ struct SpeedGauge: View {
 
 struct SpeedTestView: View {
     @State private var engine = SpeedTestEngine()
+    @State private var directory = ServerDirectory()
     @Environment(HistoryStore.self) private var history
     @Environment(ConnectionMonitor.self) private var connection
     @Environment(LocationProvider.self) private var location
     @Environment(ProManager.self) private var pro
     @State private var showSettings = false
+    // One-time informed consent before the first M-Lab test, since M-Lab
+    // publishes every test (incl. the user's IP) as open data. Bump the key
+    // suffix if the disclosure text materially changes, to re-prompt.
+    @AppStorage("mlabConsentAcceptedV1") private var mlabConsented = false
+    @State private var showMLabConsent = false
+
+    /// Starts a test, but routes the first M-Lab run through a consent prompt
+    /// (M-Lab publishes results, including the user's IP, as open data).
+    private func startTest() {
+        let server = directory.selected
+        if server.provider == .mlab && !mlabConsented {
+            showMLabConsent = true
+            return
+        }
+        engine.start(runContext(), server: server)
+    }
 
     /// Snapshot of the current connection used to stamp the saved result.
     private func runContext() -> SpeedTestEngine.RunContext {
@@ -106,17 +123,33 @@ struct SpeedTestView: View {
                 metric("Ping", engine.ping, .nsB6, unit: "ms",
                        sub: engine.jitter > 0 ? "jitter \(fmt(engine.jitter)) ms" : "",
                        active: engine.phase == .latency)
+                if engine.phase == .failed { failedNote }
                 runButton
             }
+            serverCard
             trendCard
             historyCard
             coverageCard
+        }
+        .task {
+            // Discover Cloudflare + nearby M-Lab locations and ping them once.
+            if directory.servers.count <= 1 { await directory.refresh() }
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
                 .environment(history)
                 .environment(location)
                 .environment(pro)
+        }
+        .sheet(isPresented: $showMLabConsent) {
+            MLabConsentSheet(
+                place: directory.selected.shortPlace,
+                onAgree: {
+                    mlabConsented = true
+                    showMLabConsent = false
+                    engine.start(runContext(), server: directory.selected)
+                },
+                onCancel: { showMLabConsent = false })
         }
         .onAppear {
             engine.onFinished = { history.add($0) }
@@ -125,7 +158,12 @@ struct SpeedTestView: View {
             if UserDefaults.standard.bool(forKey: "autorun") {
                 Task {
                     try? await Task.sleep(nanoseconds: 600_000_000)   // let the path monitor settle
-                    if !engine.running { engine.start(runContext()) }
+                    // Automation never triggers the consent prompt: only auto-run
+                    // when the selected backbone doesn't require it (Cloudflare, or
+                    // an M-Lab the user already consented to).
+                    let s = directory.selected
+                    let allowed = s.provider != .mlab || mlabConsented
+                    if !engine.running && allowed { engine.start(runContext(), server: s) }
                 }
             }
         }
@@ -180,9 +218,21 @@ struct SpeedTestView: View {
         .animation(.smooth(duration: 0.25), value: active)
     }
 
+    private var failedNote: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark").foregroundStyle(Color(hex: 0xff6b6b))
+            Text("Couldn't reach the server. Check your connection and try again — nothing was saved.")
+                .font(.caption).foregroundStyle(Color.nsTxt)
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(Color(hex: 0xff6b6b).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        .transition(.opacity)
+    }
+
     private var runButton: some View {
         Button {
-            engine.start(runContext())
+            startTest()
         } label: {
             HStack(spacing: 8) {
                 if engine.running { ProgressView().tint(.black) }
@@ -199,6 +249,72 @@ struct SpeedTestView: View {
         .disabled(engine.running)
         .opacity(engine.running ? 0.9 : 1)
         .padding(.top, 4)
+    }
+
+    // MARK: Server / location picker
+
+    private var serverCard: some View {
+        Card {
+            HStack {
+                Text("TEST SERVER")
+                    .font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(Color.nsMuted)
+                Spacer()
+                Button { Task { await directory.refresh() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .symbolEffect(.rotate, options: .repeating, isActive: directory.loading)
+                        .foregroundStyle(Color.nsAccent)
+                }
+                .disabled(directory.loading)
+            }
+            if directory.servers.count <= 1 && directory.loading {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Finding nearby servers…").font(.caption).foregroundStyle(Color.nsFaint)
+                }
+            }
+            ForEach(directory.servers) { serverRow($0) }
+            Text("Throughput runs on Cloudflare's nearest edge or M-Lab / NDT7 — an open-source internet measurement network. Pick a city to test a specific route; ping shows the TCP round-trip to each.")
+                .font(.caption2).foregroundStyle(Color.nsFaint)
+        }
+        .disabled(engine.running)
+        .opacity(engine.running ? 0.6 : 1)
+    }
+
+    private func serverRow(_ s: SpeedServer) -> some View {
+        let isSelected = directory.selectedID == s.id
+        return Button { directory.selectedID = s.id } label: {
+            HStack(spacing: 12) {
+                Image(systemName: s.provider == .cloudflare ? "bolt.horizontal.circle.fill" : "globe.americas.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(isSelected ? Color.nsAccent : Color.nsFaint)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(s.shortPlace).font(.subheadline.weight(.medium)).foregroundStyle(Color.nsTxt)
+                    Text(s.detail).font(.caption2).foregroundStyle(Color.nsFaint)
+                }
+                Spacer()
+                Text(pingText(s.pingMs)).font(.caption.monospacedDigit())
+                    .foregroundStyle(latencyColor(s.pingMs))
+                    .contentTransition(.numericText())
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Color.nsAccent : Color.nsLine)
+            }
+            .padding(.vertical, 7)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottom) { Divider().overlay(Color.nsLine) }
+    }
+
+    private func pingText(_ ms: Double?) -> String {
+        guard let ms else { return directory.loading ? "…" : "—" }
+        return "\(Int(ms.rounded())) ms"
+    }
+    private func latencyColor(_ ms: Double?) -> Color {
+        guard let ms else { return Color.nsFaint }
+        if ms < 50 { return .nsOk }
+        if ms < 150 { return Color(hex: 0xffa726) }
+        return Color(hex: 0xff6b6b)
     }
 
     @ViewBuilder
@@ -329,4 +445,71 @@ struct SpeedTestView: View {
     private func fmt(_ v: Double) -> String { String(format: "%.1f", v) }
 
     private let maxRows = 40
+}
+
+// MARK: - M-Lab open-data consent
+
+/// One-time informed-consent sheet shown before the first M-Lab speed test.
+/// M-Lab publishes every test (including the user's IP, the time, and the
+/// measured speeds) as an open, CC0-licensed public dataset — so this names
+/// that consequence plainly and requires an affirmative tap before any run.
+struct MLabConsentSheet: View {
+    let place: String
+    let onAgree: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "globe.americas.fill")
+                            .font(.system(size: 30)).foregroundStyle(Color.nsAccent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Public measurement").font(.title3.weight(.bold)).foregroundStyle(Color.nsTxt)
+                            Text("M-Lab · \(place)").font(.caption).foregroundStyle(Color.nsFaint)
+                        }
+                        Spacer()
+                    }
+                    Text("You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it.")
+                        .font(.subheadline).foregroundStyle(Color.nsTxt)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        bullet("Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.")
+                        bullet("This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.")
+                        bullet("Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published.")
+                    }
+                    .padding(16)
+                    .background(Color.nsSurface2, in: RoundedRectangle(cornerRadius: 14))
+
+                    Text("Your choice is remembered. You can read the full details any time in Settings → Privacy Policy.")
+                        .font(.caption2).foregroundStyle(Color.nsFaint)
+                }
+                .padding(20)
+            }
+            VStack(spacing: 10) {
+                Button(action: onAgree) {
+                    Text("Agree & run test")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .foregroundStyle(Color(hex: 0x04122e))
+                        .background(Color.nsAccent, in: Capsule())
+                }
+                Button(action: onCancel) {
+                    Text("Cancel").font(.subheadline.weight(.medium)).foregroundStyle(Color.nsMuted)
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                }
+            }
+            .padding(20)
+        }
+        .background(Color.nsBg.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+    }
+
+    private func bullet(_ markdown: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "circle.fill").font(.system(size: 5)).foregroundStyle(Color.nsAccent).padding(.top, 7)
+            Text(.init(markdown)).font(.subheadline).foregroundStyle(Color.nsTxt)
+        }
+    }
 }

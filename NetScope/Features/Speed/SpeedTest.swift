@@ -1008,14 +1008,28 @@ enum LibreSpeed {
     private static func strip(_ p: String) -> String { p.hasPrefix("/") ? String(p.dropFirst()) : p }
 
     /// "Amsterdam, Netherlands (Clouvider)" → ("Amsterdam, Netherlands", "Clouvider").
+    /// Prefers the explicit `sponsorName` field; only falls back to parsing a trailing
+    /// balanced "(…)" out of the name (anchored on the LAST one, so place names that
+    /// themselves contain parentheses aren't garbled).
     private static func splitName(_ name: String, fallback: String?) -> (String, String) {
-        if let r = name.range(of: " (") {
-            let city = String(name[..<r.lowerBound]).trimmingCharacters(in: .whitespaces)
-            var sp = String(name[r.upperBound...])
-            if sp.hasSuffix(")") { sp.removeLast() }
-            return (city, sp.trimmingCharacters(in: .whitespaces))
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        // Strip a trailing balanced " (…)" group off the display city.
+        func cityWithoutTrailingParen(_ s: String) -> String {
+            if s.hasSuffix(")"), let r = s.range(of: " (", options: .backwards) {
+                return String(s[..<r.lowerBound]).trimmingCharacters(in: .whitespaces)
+            }
+            return s
         }
-        return (name.trimmingCharacters(in: .whitespaces), fallback ?? "")
+        if let fb = fallback?.trimmingCharacters(in: .whitespaces), !fb.isEmpty {
+            let city = cityWithoutTrailingParen(trimmed)
+            return (city.isEmpty ? trimmed : city, fb)
+        }
+        if trimmed.hasSuffix(")"), let r = trimmed.range(of: " (", options: .backwards) {
+            let city = String(trimmed[..<r.lowerBound]).trimmingCharacters(in: .whitespaces)
+            var sp = String(trimmed[r.upperBound...]); sp.removeLast()   // drop trailing ")"
+            if !sp.contains(")") { return (city, sp.trimmingCharacters(in: .whitespaces)) }
+        }
+        return (trimmed, "")
     }
 }
 

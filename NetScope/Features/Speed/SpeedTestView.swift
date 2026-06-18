@@ -101,6 +101,26 @@ struct SpeedTestView: View {
         engine.start(runContext(), server: server)
     }
 
+    /// Auto-start a test without ever showing the consent prompt — used by Shortcuts/Siri
+    /// automation. Silently skips when a test is running or the selected backbone still
+    /// needs consent (the default is Cloudflare, which never does).
+    private func autoRunIfAllowed() {
+        Task {
+            try? await Task.sleep(nanoseconds: 600_000_000)   // let the path monitor settle
+            let s = directory.selected
+            if !engine.running && !needsConsent(s.provider) {
+                engine.start(runContext(), server: s)
+            }
+        }
+    }
+
+    /// Consume the one-shot flag set by the Siri "Run Speed Test" App Intent.
+    private func consumeSiriRun() {
+        guard UserDefaults.standard.bool(forKey: kSiriRunFlag) else { return }
+        UserDefaults.standard.set(false, forKey: kSiriRunFlag)
+        autoRunIfAllowed()
+    }
+
     /// Snapshot of the current connection used to stamp the saved result.
     private func runContext() -> SpeedTestEngine.RunContext {
         SpeedTestEngine.RunContext(

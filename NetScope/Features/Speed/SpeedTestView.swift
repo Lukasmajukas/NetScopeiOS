@@ -266,6 +266,31 @@ struct SpeedTestView: View {
                 }
                 .disabled(directory.loading)
             }
+            // M-Lab can return servers for a chosen country, not just the nearest.
+            HStack {
+                Text("M-Lab country").font(.caption).foregroundStyle(Color.nsMuted)
+                Spacer()
+                Menu {
+                    ForEach(ServerDirectory.countries, id: \.name) { c in
+                        Button {
+                            if directory.mlabCountry != c.code {
+                                directory.mlabCountry = c.code
+                                Task { await directory.refresh() }
+                            }
+                        } label: {
+                            if directory.mlabCountry == c.code { Label(c.name, systemImage: "checkmark") }
+                            else { Text(c.name) }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(mlabCountryName).font(.caption.weight(.semibold))
+                        Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                    }
+                    .foregroundStyle(Color.nsAccent)
+                }
+                .disabled(directory.loading)
+            }
             if directory.servers.count <= 1 && directory.loading {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
@@ -273,7 +298,7 @@ struct SpeedTestView: View {
                 }
             }
             ForEach(directory.servers) { serverRow($0) }
-            Text("Throughput runs on Cloudflare's nearest edge or M-Lab / NDT7 — an open-source internet measurement network. Pick a city to test a specific route; ping shows the TCP round-trip to each.")
+            Text("Throughput runs on Cloudflare's nearest edge, M-Lab / NDT7, or LibreSpeed — open measurement networks. Pick a city (or an M-Lab country) to test a specific route; ping shows the TCP round-trip to each.")
                 .font(.caption2).foregroundStyle(Color.nsFaint)
         }
         .disabled(engine.running)

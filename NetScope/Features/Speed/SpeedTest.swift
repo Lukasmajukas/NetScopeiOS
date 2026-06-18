@@ -838,37 +838,66 @@ final class ServerDirectory {
     var selectedID: SpeedServer.ID = SpeedServer.cloudflare.id
     private(set) var loading = false
 
+    /// Optional ISO 3166-1 country filter for M-Lab (nil = geo-nearest). Changing
+    /// it and refreshing re-queries M-Lab's Locate API for that country's servers.
+    var mlabCountry: String? = nil
+
+    /// LibreSpeed's list is static across countries, so fetch + ping it once and reuse.
+    @ObservationIgnored private var libreCache: [SpeedServer] = []
+
+    /// Countries offered in the M-Lab location menu (label, ISO code; nil = nearest).
+    static let countries: [(name: String, code: String?)] = [
+        ("Nearest", nil), ("United States", "US"), ("United Kingdom", "GB"),
+        ("Canada", "CA"), ("Germany", "DE"), ("France", "FR"), ("Netherlands", "NL"),
+        ("Spain", "ES"), ("Italy", "IT"), ("Japan", "JP"), ("Singapore", "SG"),
+        ("Australia", "AU"), ("India", "IN"), ("Brazil", "BR"), ("South Africa", "ZA"),
+    ]
+
     /// The currently-selected server (falls back to the first if the id is stale).
     var selected: SpeedServer {
         servers.first { $0.id == selectedID } ?? servers.first ?? .cloudflare
     }
 
-    /// Rebuild the list (Cloudflare + nearby M-Lab cities) and ping each.
+    /// Rebuild the list: Cloudflare + M-Lab (for the chosen country) + LibreSpeed cities,
+    /// each pinged. M-Lab is re-fetched every time (country may have changed); LibreSpeed
+    /// is fetched/pinged once and cached so changing country doesn't re-hit donated hosts.
     func refresh() async {
         guard !loading else { return }
         loading = true
         defer { loading = false }
 
-        var list: [SpeedServer] = [.cloudflare]
-        list += await MLabLocate.fetch()
-
-        await withTaskGroup(of: (SpeedServer.ID, Double?).self) { group in
-            for s in list {
-                group.addTask { (s.id, await NetLatency.connect(host: s.host, port: 443)) }
-            }
-            for await (id, ms) in group {
-                if let i = list.firstIndex(where: { $0.id == id }) { list[i].pingMs = ms }
-            }
+        if libreCache.isEmpty {
+            var ls = await LibreSpeed.fetch()
+            await Self.ping(&ls)
+            libreCache = ls
         }
-        // Reachable servers first, then by ascending ping (display order only).
+
+        var dynamic: [SpeedServer] = [.cloudflare]
+        dynamic += await MLabLocate.fetch(country: mlabCountry)
+        await Self.ping(&dynamic)
+
+        var list = dynamic + libreCache
         list.sort { ($0.pingMs ?? .infinity) < ($1.pingMs ?? .infinity) }
         servers = list
-        // Keep the user's pick if it's still present; otherwise fall back to the
-        // privacy-preserving default (Cloudflare), NOT the lowest-ping server —
-        // an M-Lab default would publish data without an explicit choice.
+        // Keep the user's pick if still present; otherwise fall back to the
+        // privacy-preserving default (Cloudflare), NOT the lowest-ping server.
         if !list.contains(where: { $0.id == selectedID }) {
             selectedID = SpeedServer.cloudflare.id
         }
+    }
+
+    /// Measure a TCP-connect RTT to each server in parallel and write it back.
+    private static func ping(_ servers: inout [SpeedServer]) async {
+        let hosts = servers.map { ($0.id, $0.host) }
+        let pings: [SpeedServer.ID: Double] = await withTaskGroup(of: (SpeedServer.ID, Double?).self) { group in
+            for (id, host) in hosts {
+                group.addTask { (id, await NetLatency.connect(host: host, port: 443)) }
+            }
+            var acc: [SpeedServer.ID: Double] = [:]
+            for await (id, ms) in group { if let ms { acc[id] = ms } }
+            return acc
+        }
+        for i in servers.indices { servers[i].pingMs = pings[servers[i].id] }
     }
 }
 

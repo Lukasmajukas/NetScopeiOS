@@ -288,13 +288,13 @@ final class SpeedTestEngine: NSObject {
         // Latency: Cloudflare uses a tiny HTTP round-trip; M-Lab uses a TCP-connect
         // RTT to the chosen machine (no public HTTP probe path there).
         switch srv.provider {
-        case .cloudflare: (ping, jitter) = await measurePingHTTP()
-        case .mlab:       (ping, jitter) = await measurePingTCP(host: srv.host)
+        case .cloudflare:        (ping, jitter) = await measurePingHTTP()
+        case .mlab, .librespeed: (ping, jitter) = await measurePingTCP(host: srv.host)
         }
 
         phase = .downloading
         switch srv.provider {
-        case .cloudflare:
+        case .cloudflare, .librespeed:
             download = await measure(.download, seconds: downSeconds)
             dlBytes = phaseCounter.value
         case .mlab:
@@ -303,7 +303,7 @@ final class SpeedTestEngine: NSObject {
 
         phase = .uploading
         switch srv.provider {
-        case .cloudflare:
+        case .cloudflare, .librespeed:
             upload = await measure(.upload, seconds: upSeconds)
             ulBytes = phaseCounter.value
         case .mlab:

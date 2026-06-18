@@ -21,7 +21,9 @@ open NetScope.xcodeproj
 ```
 
 Then set your signing **Team** (Signing & Capabilities) and Run on a device or simulator.
-Targets iOS 16+.
+Targets **iOS 27** — the UI uses Liquid Glass (iOS 26+) and the code uses the
+`@Observable` Observation framework (iOS 17+), so the deployment target can't be lowered
+without removing those.
 
 > ⚠️ If you add or move a `.swift` file and skip `xcodegen generate`, Xcode builds the
 > *old* file list — you'll get missing-file / missing-symbol errors. Always regenerate.

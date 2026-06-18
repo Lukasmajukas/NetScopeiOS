@@ -946,6 +946,74 @@ enum MLabLocate {
     }
 }
 
+/// LibreSpeed public backend list — ~40 community-donated HTTPS servers worldwide.
+/// Each entry self-describes its download (garbage) / upload (empty) URLs, so the app
+/// can enumerate cities, ping each, and run a plain-HTTPS test against the chosen one.
+/// (Open-source, LGPL; servers are sponsor-donated, so we health-check via ping and
+/// run the actual throughput test only against the server the user explicitly picks.)
+enum LibreSpeed {
+    static let listURL = "https://librespeed.org/backend-servers/servers.json"
+
+    private struct Entry: Decodable {
+        let name: String
+        let server: String
+        let dlURL: String
+        let ulURL: String
+        let sponsorName: String?
+    }
+
+    private static let session: URLSession = {
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.timeoutIntervalForRequest = 8
+        cfg.waitsForConnectivity = false
+        return URLSession(configuration: cfg)
+    }()
+
+    static func fetch() async -> [SpeedServer] {
+        guard let url = URL(string: listURL),
+              let (d, _) = try? await session.data(from: url),
+              let entries = try? JSONDecoder().decode([Entry].self, from: d) else { return [] }
+
+        var out: [SpeedServer] = []
+        for e in entries {
+            guard let base = httpsBase(e.server),
+                  let dl = URL(string: base + strip(e.dlURL) + "?ckSize=100"),
+                  let ul = URL(string: base + strip(e.ulURL)),
+                  let host = URL(string: base)?.host else { continue }
+            let (city, sponsor) = splitName(e.name, fallback: e.sponsorName)
+            out.append(SpeedServer(
+                id: "ls-\(host)", provider: .librespeed,
+                city: city, country: "", host: host,
+                downloadURL: dl, uploadURL: ul, sponsor: sponsor, pingMs: nil))
+        }
+        return out
+    }
+
+    /// Force HTTPS (some bases are protocol-relative `//host/`) + a single trailing slash,
+    /// so every server is ATS-safe for a sandboxed iOS app.
+    private static func httpsBase(_ s: String) -> String? {
+        var b = s.trimmingCharacters(in: .whitespaces)
+        guard !b.isEmpty else { return nil }
+        if b.hasPrefix("//") { b = "https:" + b }
+        else if b.hasPrefix("http://") { b = "https://" + b.dropFirst("http://".count) }
+        else if !b.hasPrefix("https://") { b = "https://" + b }
+        if !b.hasSuffix("/") { b += "/" }
+        return b
+    }
+    private static func strip(_ p: String) -> String { p.hasPrefix("/") ? String(p.dropFirst()) : p }
+
+    /// "Amsterdam, Netherlands (Clouvider)" → ("Amsterdam, Netherlands", "Clouvider").
+    private static func splitName(_ name: String, fallback: String?) -> (String, String) {
+        if let r = name.range(of: " (") {
+            let city = String(name[..<r.lowerBound]).trimmingCharacters(in: .whitespaces)
+            var sp = String(name[r.upperBound...])
+            if sp.hasSuffix(")") { sp.removeLast() }
+            return (city, sp.trimmingCharacters(in: .whitespaces))
+        }
+        return (name.trimmingCharacters(in: .whitespaces), fallback ?? "")
+    }
+}
+
 /// TCP-connect round-trip timing (no TLS), used to ping each candidate server.
 enum NetLatency {
     static func connect(host: String, port: UInt16, timeout: Double = 4) async -> Double? {

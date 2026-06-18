@@ -65,8 +65,10 @@ final class AISummarizer {
             let session = LanguageModelSession(
                 instructions: "You are a concise, friendly network assistant inside a speed-test app. You give brief, practical, jargon-free interpretations of connection quality.")
             let response = try await session.respond(to: prompt)
+            guard token == generation else { return }   // superseded by a newer test / tap
             state = .done(response.content.trimmingCharacters(in: .whitespacesAndNewlines))
         } catch {
+            guard token == generation else { return }
             state = .failed("Couldn't generate a summary just now.")
         }
         #else
@@ -74,5 +76,5 @@ final class AISummarizer {
         #endif
     }
 
-    func reset() { state = .idle }
+    func reset() { generation += 1; state = .idle }
 }

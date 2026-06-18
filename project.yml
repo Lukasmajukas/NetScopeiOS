@@ -31,5 +31,6 @@ targets:
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
         CODE_SIGN_STYLE: Automatic
         ENABLE_USER_SCRIPT_SANDBOXING: YES
-        # set DEVELOPMENT_TEAM here, or pick your Team in Xcode's Signing tab
-        # DEVELOPMENT_TEAM: ABCDE12345
+        # Signing team — required for device builds. Without it, regenerating the
+        # project drops the team and on-device builds fail with a signing error.
+        DEVELOPMENT_TEAM: 68MUVS35CH

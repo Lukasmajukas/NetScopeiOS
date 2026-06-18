@@ -310,10 +310,10 @@ final class SpeedTestEngine: NSObject {
             (upload, ulBytes) = await ndt7(.upload, url: srv.uploadURL, seconds: upSeconds)
         }
 
-        // A run that moved zero bytes in both directions means we never reached
-        // the server (offline, airplane mode, unreachable/expired M-Lab URL). Mark
-        // it failed and DON'T persist a bogus 0/0/0 row to history or the CSV.
-        if dlBytes == 0 && ulBytes == 0 {
+        // If EITHER leg moved zero bytes the run is invalid — offline (both zero), or a
+        // half-broken server (e.g. a LibreSpeed host whose upload endpoint is dead while
+        // download works). Mark it failed and DON'T persist a bogus 0-on-one-leg row.
+        if dlBytes == 0 || ulBytes == 0 {
             phase = .failed
             live = 0; progress = 0
             running = false

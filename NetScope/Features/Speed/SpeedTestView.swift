@@ -66,6 +66,7 @@ struct SpeedTestView: View {
     @Environment(ConnectionMonitor.self) private var connection
     @Environment(LocationProvider.self) private var location
     @Environment(ProManager.self) private var pro
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showSettings = false
     // One-time informed consent before the first M-Lab test, since M-Lab
     // publishes every test (incl. the user's IP) as open data. Bump the key

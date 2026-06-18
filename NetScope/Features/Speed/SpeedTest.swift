@@ -780,15 +780,16 @@ enum CSVImport {
 // selectable locations with per-server ping.
 
 struct SpeedServer: Identifiable, Equatable, Sendable {
-    enum Provider: String, Sendable { case cloudflare, mlab }
+    enum Provider: String, Sendable { case cloudflare, mlab, librespeed }
 
     let id: String
     let provider: Provider
     let city: String
     let country: String
     let host: String          // hostname used for the TCP-connect ping
-    var downloadURL: URL?     // M-Lab: pre-signed wss download URL
-    var uploadURL: URL?       // M-Lab: pre-signed wss upload URL
+    var downloadURL: URL?     // M-Lab: wss download · LibreSpeed: https garbage URL
+    var uploadURL: URL?       // M-Lab: wss upload · LibreSpeed: https empty URL
+    var sponsor: String = ""  // LibreSpeed: donating sponsor
     var pingMs: Double?
 
     /// Short place label for the picker row.
@@ -796,6 +797,7 @@ struct SpeedServer: Identifiable, Equatable, Sendable {
         switch provider {
         case .cloudflare: return "Nearest (auto)"
         case .mlab:       return country.isEmpty ? city : "\(city), \(country)"
+        case .librespeed: return city.isEmpty ? "LibreSpeed server" : city
         }
     }
     /// Sub-label naming the backbone/protocol.
@@ -803,6 +805,7 @@ struct SpeedServer: Identifiable, Equatable, Sendable {
         switch provider {
         case .cloudflare: return "Cloudflare · anycast edge"
         case .mlab:       return "M-Lab · NDT7"
+        case .librespeed: return sponsor.isEmpty ? "LibreSpeed" : "LibreSpeed · \(sponsor)"
         }
     }
 

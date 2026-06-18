@@ -331,6 +331,18 @@ struct SpeedTestView: View {
         .overlay(alignment: .bottom) { Divider().overlay(Color.nsLine) }
     }
 
+    private var mlabCountryName: String {
+        ServerDirectory.countries.first { $0.code == directory.mlabCountry }?.name ?? "Nearest"
+    }
+
+    private func providerIcon(_ p: SpeedServer.Provider) -> String {
+        switch p {
+        case .cloudflare: return "bolt.horizontal.circle.fill"
+        case .mlab:       return "globe.americas.fill"
+        case .librespeed: return "server.rack"
+        }
+    }
+
     private func pingText(_ ms: Double?) -> String {
         guard let ms else { return directory.loading ? "…" : "—" }
         return "\(Int(ms.rounded())) ms"

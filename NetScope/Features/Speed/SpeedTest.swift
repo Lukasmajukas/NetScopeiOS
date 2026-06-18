@@ -861,15 +861,20 @@ final class ServerDirectory {
     /// Rebuild the list: Cloudflare + M-Lab (for the chosen country) + LibreSpeed cities,
     /// each pinged. M-Lab is re-fetched every time (country may have changed); LibreSpeed
     /// is fetched/pinged once and cached so changing country doesn't re-hit donated hosts.
-    func refresh() async {
+    /// `repingLibre` re-checks the cached LibreSpeed hosts too (used by the manual refresh
+    /// button); country-change refreshes leave it false so we don't re-ping donated hosts
+    /// on every menu tap.
+    func refresh(repingLibre: Bool = false) async {
         guard !loading else { return }
         loading = true
         defer { loading = false }
 
         if libreCache.isEmpty {
             var ls = await LibreSpeed.fetch()
-            await Self.ping(&ls)
+            await Self.ping(&ls)            // first load: fetch + ping
             libreCache = ls
+        } else if repingLibre {
+            await Self.ping(&libreCache)    // explicit user refresh: re-check stale/dead hosts
         }
 
         var dynamic: [SpeedServer] = [.cloudflare]

@@ -286,7 +286,7 @@ struct SpeedTestView: View {
     @ViewBuilder
     private var aiCard: some View {
         // Only when on-device Apple Intelligence is available and there's a result to read.
-        if summarizer.isAvailable, let latest = history.items.first {
+        if summarizer.available, let latest = history.items.first {
             Card {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")

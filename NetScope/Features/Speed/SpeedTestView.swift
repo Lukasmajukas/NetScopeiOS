@@ -309,7 +309,7 @@ struct SpeedTestView: View {
         let isSelected = directory.selectedID == s.id
         return Button { directory.selectedID = s.id } label: {
             HStack(spacing: 12) {
-                Image(systemName: s.provider == .cloudflare ? "bolt.horizontal.circle.fill" : "globe.americas.fill")
+                Image(systemName: providerIcon(s.provider))
                     .font(.system(size: 18))
                     .foregroundStyle(isSelected ? Color.nsAccent : Color.nsFaint)
                     .frame(width: 22)

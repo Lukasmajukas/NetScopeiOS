@@ -7,62 +7,95 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4D60638FF6B4301BFCC2C474 /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C68D5BE03D691EDFD745DF5 /* Connection.swift */; };
-		654781FD7A3F34DE53E984C9 /* NetScopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7FCC39FA844DE335DF92150 /* NetScopeApp.swift */; };
-		80AC2E02963D60E86AB0AC3C /* Devices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BC0FEEEA6D147E55CD9328 /* Devices.swift */; };
-		A3A48E69B6ECF47B63AD30AA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4959D1B86F583678D4A84329 /* Theme.swift */; };
-		A46697D56102C9B17021CA8D /* Learn.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5A3A0888F775EF4298ECA84 /* Learn.swift */; };
-		AECA7A1090000000000000F2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AECA7A1090000000000000F1 /* Assets.xcassets */; };
-		CECA7A1090000000000000F2 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CECA7A1090000000000000F1 /* Settings.swift */; };
-		DECA7A1090000000000000F2 /* Privacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECA7A1090000000000000F1 /* Privacy.swift */; };
-		E1CA7A1090000000000000F2 /* Pro.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1CA7A1090000000000000F1 /* Pro.swift */; };
-		E2CA7A1090000000000000F2 /* Coverage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CA7A1090000000000000F1 /* Coverage.swift */; };
-		E3CA7A1090000000000000F2 /* Enrichment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3CA7A1090000000000000F1 /* Enrichment.swift */; };
-		E4CA7A1090000000000000F2 /* Tools.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4CA7A1090000000000000F1 /* Tools.swift */; };
-		F6FFD706A28A4C869BBB2A2C /* SpeedTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 812687E90FA284CF298A7EE2 /* SpeedTest.swift */; };
-		F8CDCAF9A651BE42333D0C01 /* SpeedTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC9BA87B043948363739AFB5 /* SpeedTestView.swift */; };
+		0AF894CFCC37B3DEC125B1A8 /* Pro.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AF0A23CAEC562182CFABB1 /* Pro.swift */; };
+		2D3D72140A353F0ADC337C15 /* Devices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953E4B7DE20FD93E681A6001 /* Devices.swift */; };
+		49880B78E0AAF1C71B3C70C2 /* SpeedTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D1D89EEC10603A399EC0F2E /* SpeedTest.swift */; };
+		5FB6323A509829E5CC5BED96 /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA24A40246DEE949CAD749E /* Connection.swift */; };
+		6A1151BA5E3278D2AD9988C5 /* Privacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0027DF7DF68284D28595561C /* Privacy.swift */; };
+		785799788ED92FB678644EFA /* Tools.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBA743474FD7CC987D15400 /* Tools.swift */; };
+		847BD283991A604AC4765DEB /* SpeedTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F373CCEB4FCC1CE1FFCEEF4 /* SpeedTestView.swift */; };
+		86674F530839C9A3FBFFEE24 /* Coverage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B74D461AA582D2E5AB0870D1 /* Coverage.swift */; };
+		A5A6282A4975F75CAE333060 /* NetScopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772971C23C197581B709D78 /* NetScopeApp.swift */; };
+		A9B5CD933DE4C238756DDF08 /* Learn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B983DA884B98BE60B1C05CA /* Learn.swift */; };
+		AEE69F63C2C04E90FF8AF3B0 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94B47411BB7EE7D9303D793 /* Settings.swift */; };
+		DDAA9A21C62AC62C789D8458 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B53727EE4708265FC0CE55A /* Assets.xcassets */; };
+		EC2901C019994080FBF84ED4 /* Enrichment.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6251FDAAA9C0A003968B4F /* Enrichment.swift */; };
+		F93E68C3B2361363473BA3E7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C00A95F7C1AE3FA1596DAFE /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0027DF7DF68284D28595561C /* Privacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Privacy.swift; sourceTree = "<group>"; };
+		0B53727EE4708265FC0CE55A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		29FCD09D78E7559AB0BEA076 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		43BC0FEEEA6D147E55CD9328 /* Devices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Devices.swift; sourceTree = "<group>"; };
-		4959D1B86F583678D4A84329 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		5C68D5BE03D691EDFD745DF5 /* Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connection.swift; sourceTree = "<group>"; };
-		812687E90FA284CF298A7EE2 /* SpeedTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTest.swift; sourceTree = "<group>"; };
-		8A69C598155B6B6824271455 /* NetScope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetScope.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AECA7A1090000000000000F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		BC9BA87B043948363739AFB5 /* SpeedTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTestView.swift; sourceTree = "<group>"; };
-		CECA7A1090000000000000F1 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
-		DECA7A1090000000000000F1 /* Privacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Privacy.swift; sourceTree = "<group>"; };
-		E1CA7A1090000000000000F1 /* Pro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pro.swift; sourceTree = "<group>"; };
-		E2CA7A1090000000000000F1 /* Coverage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coverage.swift; sourceTree = "<group>"; };
-		E3CA7A1090000000000000F1 /* Enrichment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enrichment.swift; sourceTree = "<group>"; };
-		E4CA7A1090000000000000F1 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
-		D7FCC39FA844DE335DF92150 /* NetScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetScopeApp.swift; sourceTree = "<group>"; };
-		F5A3A0888F775EF4298ECA84 /* Learn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Learn.swift; sourceTree = "<group>"; };
+		3B983DA884B98BE60B1C05CA /* Learn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Learn.swift; sourceTree = "<group>"; };
+		3D1D89EEC10603A399EC0F2E /* SpeedTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTest.swift; sourceTree = "<group>"; };
+		7C00A95F7C1AE3FA1596DAFE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		8A69C598155B6B6824271455 /* NetScope.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NetScope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		953E4B7DE20FD93E681A6001 /* Devices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Devices.swift; sourceTree = "<group>"; };
+		9F373CCEB4FCC1CE1FFCEEF4 /* SpeedTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTestView.swift; sourceTree = "<group>"; };
+		B74D461AA582D2E5AB0870D1 /* Coverage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coverage.swift; sourceTree = "<group>"; };
+		B94B47411BB7EE7D9303D793 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		BC6251FDAAA9C0A003968B4F /* Enrichment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enrichment.swift; sourceTree = "<group>"; };
+		C772971C23C197581B709D78 /* NetScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetScopeApp.swift; sourceTree = "<group>"; };
+		CDBA743474FD7CC987D15400 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
+		D5AF0A23CAEC562182CFABB1 /* Pro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pro.swift; sourceTree = "<group>"; };
+		FBA24A40246DEE949CAD749E /* Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		107E7C678E92BA646923DD4A /* Pro */ = {
+			isa = PBXGroup;
+			children = (
+				B74D461AA582D2E5AB0870D1 /* Coverage.swift */,
+				BC6251FDAAA9C0A003968B4F /* Enrichment.swift */,
+				D5AF0A23CAEC562182CFABB1 /* Pro.swift */,
+			);
+			path = Pro;
+			sourceTree = "<group>";
+		};
+		1EBD416900A686C888B15C99 /* Connection */ = {
+			isa = PBXGroup;
+			children = (
+				FBA24A40246DEE949CAD749E /* Connection.swift */,
+			);
+			path = Connection;
+			sourceTree = "<group>";
+		};
 		25395A864ACB3CBE38FC653C /* NetScope */ = {
 			isa = PBXGroup;
 			children = (
-				AECA7A1090000000000000F1 /* Assets.xcassets */,
-				5C68D5BE03D691EDFD745DF5 /* Connection.swift */,
-				43BC0FEEEA6D147E55CD9328 /* Devices.swift */,
+				B0A2D80C46AE91D635E8532D /* App */,
+				99ED124124667D9037B69A91 /* Core */,
+				D01682C80E4E9324022BE82D /* Features */,
+				0B53727EE4708265FC0CE55A /* Assets.xcassets */,
 				29FCD09D78E7559AB0BEA076 /* Info.plist */,
-				F5A3A0888F775EF4298ECA84 /* Learn.swift */,
-				D7FCC39FA844DE335DF92150 /* NetScopeApp.swift */,
-				812687E90FA284CF298A7EE2 /* SpeedTest.swift */,
-				BC9BA87B043948363739AFB5 /* SpeedTestView.swift */,
-				CECA7A1090000000000000F1 /* Settings.swift */,
-				DECA7A1090000000000000F1 /* Privacy.swift */,
-				E1CA7A1090000000000000F1 /* Pro.swift */,
-				E2CA7A1090000000000000F1 /* Coverage.swift */,
-				E3CA7A1090000000000000F1 /* Enrichment.swift */,
-				E4CA7A1090000000000000F1 /* Tools.swift */,
-				4959D1B86F583678D4A84329 /* Theme.swift */,
 			);
 			path = NetScope;
+			sourceTree = "<group>";
+		};
+		51285BF45F5DCEF1E753CD98 /* Learn */ = {
+			isa = PBXGroup;
+			children = (
+				3B983DA884B98BE60B1C05CA /* Learn.swift */,
+			);
+			path = Learn;
+			sourceTree = "<group>";
+		};
+		5D30D3FD9B2CCE04C05B383A /* Devices */ = {
+			isa = PBXGroup;
+			children = (
+				953E4B7DE20FD93E681A6001 /* Devices.swift */,
+			);
+			path = Devices;
+			sourceTree = "<group>";
+		};
+		893C39B2B6F8EA0EA21810FC /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				0027DF7DF68284D28595561C /* Privacy.swift */,
+				B94B47411BB7EE7D9303D793 /* Settings.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		984B4DC5F61DD730FEC12354 /* Products */ = {
@@ -73,12 +106,51 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		99ED124124667D9037B69A91 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				7C00A95F7C1AE3FA1596DAFE /* Theme.swift */,
+				CDBA743474FD7CC987D15400 /* Tools.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
 		AAF38A1F9B355DEB1466EA2F = {
 			isa = PBXGroup;
 			children = (
 				25395A864ACB3CBE38FC653C /* NetScope */,
 				984B4DC5F61DD730FEC12354 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		B0A2D80C46AE91D635E8532D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C772971C23C197581B709D78 /* NetScopeApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		D01682C80E4E9324022BE82D /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				1EBD416900A686C888B15C99 /* Connection */,
+				5D30D3FD9B2CCE04C05B383A /* Devices */,
+				51285BF45F5DCEF1E753CD98 /* Learn */,
+				107E7C678E92BA646923DD4A /* Pro */,
+				893C39B2B6F8EA0EA21810FC /* Settings */,
+				F445047D0E9A9C6F5AB21076 /* Speed */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		F445047D0E9A9C6F5AB21076 /* Speed */ = {
+			isa = PBXGroup;
+			children = (
+				3D1D89EEC10603A399EC0F2E /* SpeedTest.swift */,
+				9F373CCEB4FCC1CE1FFCEEF4 /* SpeedTestView.swift */,
+			);
+			path = Speed;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -89,7 +161,7 @@
 			buildConfigurationList = D266E902933615E8D72E7199 /* Build configuration list for PBXNativeTarget "NetScope" */;
 			buildPhases = (
 				08537C8DAF2CF3C0EA83C4D0 /* Sources */,
-				AECA7A1090000000000000F3 /* Resources */,
+				6E4AD7967E8B56BF69F7369B /* Resources */,
 			);
 			buildRules = (
 			);
@@ -109,9 +181,10 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2700;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					807BD70C560151AF3F9096DC = {
+						DevelopmentTeam = 68MUVS35CH;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -136,11 +209,11 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		AECA7A1090000000000000F3 /* Resources */ = {
+		6E4AD7967E8B56BF69F7369B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AECA7A1090000000000000F2 /* Assets.xcassets in Resources */,
+				DDAA9A21C62AC62C789D8458 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,19 +224,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D60638FF6B4301BFCC2C474 /* Connection.swift in Sources */,
-				80AC2E02963D60E86AB0AC3C /* Devices.swift in Sources */,
-				A46697D56102C9B17021CA8D /* Learn.swift in Sources */,
-				654781FD7A3F34DE53E984C9 /* NetScopeApp.swift in Sources */,
-				F6FFD706A28A4C869BBB2A2C /* SpeedTest.swift in Sources */,
-				F8CDCAF9A651BE42333D0C01 /* SpeedTestView.swift in Sources */,
-				CECA7A1090000000000000F2 /* Settings.swift in Sources */,
-				DECA7A1090000000000000F2 /* Privacy.swift in Sources */,
-				E1CA7A1090000000000000F2 /* Pro.swift in Sources */,
-				E2CA7A1090000000000000F2 /* Coverage.swift in Sources */,
-				E3CA7A1090000000000000F2 /* Enrichment.swift in Sources */,
-				E4CA7A1090000000000000F2 /* Tools.swift in Sources */,
-				A3A48E69B6ECF47B63AD30AA /* Theme.swift in Sources */,
+				5FB6323A509829E5CC5BED96 /* Connection.swift in Sources */,
+				86674F530839C9A3FBFFEE24 /* Coverage.swift in Sources */,
+				2D3D72140A353F0ADC337C15 /* Devices.swift in Sources */,
+				EC2901C019994080FBF84ED4 /* Enrichment.swift in Sources */,
+				A9B5CD933DE4C238756DDF08 /* Learn.swift in Sources */,
+				A5A6282A4975F75CAE333060 /* NetScopeApp.swift in Sources */,
+				6A1151BA5E3278D2AD9988C5 /* Privacy.swift in Sources */,
+				0AF894CFCC37B3DEC125B1A8 /* Pro.swift in Sources */,
+				AEE69F63C2C04E90FF8AF3B0 /* Settings.swift in Sources */,
+				49880B78E0AAF1C71B3C70C2 /* SpeedTest.swift in Sources */,
+				847BD283991A604AC4765DEB /* SpeedTestView.swift in Sources */,
+				F93E68C3B2361363473BA3E7 /* Theme.swift in Sources */,
+				785799788ED92FB678644EFA /* Tools.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -205,7 +278,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 68MUVS35CH;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -222,13 +294,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -239,14 +310,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 68MUVS35CH;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = NetScope/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -296,7 +366,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 68MUVS35CH;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -307,12 +376,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -323,14 +391,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 68MUVS35CH;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = NetScope/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

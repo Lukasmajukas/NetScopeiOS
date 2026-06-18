@@ -154,10 +154,14 @@ struct SpeedTestView: View {
                 onCancel: { showMLabConsent = false })
         }
         .onAppear {
-            engine.onFinished = { history.add($0) }
+            // A new saved result invalidates any prior AI summary.
+            engine.onFinished = { history.add($0); summarizer.reset() }
             location.start()   // warm up location so a finished test can record lat/lon
-            // Optional: auto-start a test on launch (Shortcuts/automation, or `-autorun 1`).
-            if UserDefaults.standard.bool(forKey: "autorun") {
+            // Auto-start on launch from Shortcuts/automation (`-autorun 1`) OR when Siri
+            // launched us via the "Run Speed Test" App Intent.
+            let siriRun = UserDefaults.standard.bool(forKey: kSiriRunFlag)
+            if siriRun { UserDefaults.standard.set(false, forKey: kSiriRunFlag) }
+            if siriRun || UserDefaults.standard.bool(forKey: "autorun") {
                 Task {
                     try? await Task.sleep(nanoseconds: 600_000_000)   // let the path monitor settle
                     // Automation never triggers the consent prompt: only auto-run

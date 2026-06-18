@@ -79,11 +79,22 @@ struct SpeedTestView: View {
     @State private var consentProvider: SpeedServer.Provider = .mlab
 
     /// Starts a test, but routes the first M-Lab run through a consent prompt
-    /// (M-Lab publishes results, including the user's IP, as open data).
+    /// Whether running against this provider still needs a one-time consent prompt.
+    private func needsConsent(_ p: SpeedServer.Provider) -> Bool {
+        switch p {
+        case .cloudflare: return false              // anycast, not published, not third-party
+        case .mlab:       return !mlabConsented
+        case .librespeed: return !libreConsented
+        }
+    }
+
+    /// Routes the first run against any external backbone (M-Lab or LibreSpeed) through
+    /// its consent prompt; Cloudflare runs immediately.
     private func startTest() {
         let server = directory.selected
-        if server.provider == .mlab && !mlabConsented {
-            showMLabConsent = true
+        if needsConsent(server.provider) {
+            consentProvider = server.provider
+            showConsent = true
             return
         }
         engine.start(runContext(), server: server)

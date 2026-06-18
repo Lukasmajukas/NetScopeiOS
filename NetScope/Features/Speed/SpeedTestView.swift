@@ -185,12 +185,13 @@ struct SpeedTestView: View {
             if siriRun || UserDefaults.standard.bool(forKey: "autorun") {
                 Task {
                     try? await Task.sleep(nanoseconds: 600_000_000)   // let the path monitor settle
-                    // Automation never triggers the consent prompt: only auto-run
-                    // when the selected backbone doesn't require it (Cloudflare, or
-                    // an M-Lab the user already consented to).
+                    // Automation never shows the consent prompt: only auto-run when the
+                    // selected backbone needs no consent (Cloudflare, or an M-Lab/LibreSpeed
+                    // server the user already consented to). Otherwise it's silently skipped.
                     let s = directory.selected
-                    let allowed = s.provider != .mlab || mlabConsented
-                    if !engine.running && allowed { engine.start(runContext(), server: s) }
+                    if !engine.running && !needsConsent(s.provider) {
+                        engine.start(runContext(), server: s)
+                    }
                 }
             }
         }

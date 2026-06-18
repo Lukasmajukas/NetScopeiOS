@@ -560,31 +560,47 @@ struct SpeedTestView: View {
 /// M-Lab publishes every test (including the user's IP, the time, and the
 /// measured speeds) as an open, CC0-licensed public dataset — so this names
 /// that consequence plainly and requires an affirmative tap before any run.
-struct MLabConsentSheet: View {
+struct ServerConsentSheet: View {
+    let provider: SpeedServer.Provider
     let place: String
     let onAgree: () -> Void
     let onCancel: () -> Void
+
+    private var icon: String { provider == .mlab ? "globe.americas.fill" : "server.rack" }
+    private var network: String { provider == .mlab ? "M-Lab" : "LibreSpeed" }
+    private var lead: String {
+        provider == .mlab
+            ? "You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it."
+            : "You picked a **LibreSpeed** server. These are community-donated servers run by third parties (ISPs, hosts), **not operated by NetScope**."
+    }
+    private var bullets: [String] {
+        provider == .mlab
+            ? ["Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.",
+               "This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.",
+               "Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published."]
+            : ["Running this test sends your **public IP address** and full-rate test traffic to a **third-party server NetScope doesn't control**.",
+               "The result isn't published as an open dataset, but the host operator can see your IP and connection — treat it like visiting any third-party website.",
+               "Prefer to stick with a first-party backbone? Tap **Cancel** and choose **Cloudflare**."]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack(spacing: 14) {
-                        Image(systemName: "globe.americas.fill")
+                        Image(systemName: icon)
                             .font(.system(size: 30)).foregroundStyle(Color.nsAccent)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Public measurement").font(.title3.weight(.bold)).foregroundStyle(Color.nsTxt)
-                            Text("M-Lab · \(place)").font(.caption).foregroundStyle(Color.nsFaint)
+                            Text(provider == .mlab ? "Public measurement" : "Third-party server")
+                                .font(.title3.weight(.bold)).foregroundStyle(Color.nsTxt)
+                            Text("\(network) · \(place)").font(.caption).foregroundStyle(Color.nsFaint)
                         }
                         Spacer()
                     }
-                    Text("You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it.")
-                        .font(.subheadline).foregroundStyle(Color.nsTxt)
+                    Text(.init(lead)).font(.subheadline).foregroundStyle(Color.nsTxt)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        bullet("Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.")
-                        bullet("This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.")
-                        bullet("Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published.")
+                        ForEach(bullets, id: \.self) { bullet($0) }
                     }
                     .padding(16)
                     .background(Color.nsSurface2, in: RoundedRectangle(cornerRadius: 14))

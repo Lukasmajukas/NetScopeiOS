@@ -12,7 +12,7 @@ struct PrivacyPolicyView: View {
                     subtitle: "Last updated June 16, 2026"
                 )
                 legalCard("The short version") {
-                    Text("NetScope does not collect, transmit, or sell your data. Everything you see in the app stays on your device. When you run a speed test, your IP address is visible to Cloudflare and ipinfo.io — the same third parties any speed test app uses — but the developer never receives it.")
+                    Text("NetScope has no servers and no analytics — the developer never receives, stores, or sells your data, and your results live on your device. Running a speed test does send your IP address to the test backbone (Cloudflare by default, or M-Lab if you choose an M-Lab location) and to ipinfo.io, as any speed test must. Important: if you choose an M-Lab location, that test — your IP address, the time, and your measured speeds — is published publicly by M-Lab as open data under a CC0 license, and that cannot be undone.")
                         .font(.subheadline)
                         .foregroundStyle(Color.nsTxt)
                 }
@@ -24,13 +24,16 @@ struct PrivacyPolicyView: View {
                     legalRow("wifi", "Network details",
                              "Wi-Fi name (SSID), router ID (BSSID), signal strength, cellular carrier and generation.")
                     legalRow("globe", "IP addresses",
-                             "Your public IP (from Cloudflare) and local IP. Stored in test history on your device only.")
+                             "Your public IP (from ipinfo.io and the test backbone) and local IP are stored in your on-device history. On the M-Lab path your public IP is also transmitted to and published by M-Lab — see Third-party services.")
                 }
                 legalCard("Third-party services") {
-                    Text("Two external services are contacted when you run a speed test. Neither receives your name, location, device ID, or test history.")
+                    Text("External services are contacted when you open the Speed tab (to list nearby servers and measure their ping), pick a server, or run a test. None receives your name, precise location, device ID, or test history.")
                         .font(.caption).foregroundStyle(Color.nsMuted).padding(.bottom, 4)
                     thirdPartyRow("Cloudflare", "speed.cloudflare.com",
-                                  "Runs the speed test. Sees your IP and the test traffic.")
+                                  "Default backbone. Runs the test and sees your IP and the test traffic.")
+                    Divider().overlay(Color.nsLine)
+                    thirdPartyRow("M-Lab (Measurement Lab)", "measurement-lab.org",
+                                  "Optional open-source backbone you can select. IMPORTANT: M-Lab publishes every test it runs — including your IP address, the time, and the measured speeds — as an open public dataset under a CC0 license. Only used when you choose an M-Lab location.")
                     Divider().overlay(Color.nsLine)
                     thirdPartyRow("ipinfo.io", "ipinfo.io",
                                   "Returns your ISP name and approximate city from your IP address.")
@@ -136,7 +139,7 @@ struct TermsView: View {
                     bulletRow("You may not reverse engineer, modify, or redistribute the app.")
                 }
                 legalCard("Third-party services") {
-                    Text("When you run a speed test, traffic passes through Cloudflare's servers and your IP address is sent to ipinfo.io. Your use of those services is subject to their respective terms and privacy policies. The developer is not responsible for those services.")
+                    Text("When you run a speed test, traffic passes through the selected backbone — Cloudflare by default, or M-Lab (Measurement Lab) if you choose an M-Lab location — and your IP address is sent to ipinfo.io. Tests run against M-Lab become part of M-Lab's openly published, CC0-licensed measurement dataset. Your use of those services is subject to their respective terms and privacy policies. The developer is not responsible for those services.")
                         .font(.caption).foregroundStyle(Color.nsMuted)
                 }
                 legalCard("No warranty") {

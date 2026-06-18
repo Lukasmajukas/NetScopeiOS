@@ -1,6 +1,6 @@
 # NetScope Privacy Policy
 
-**Last updated: June 16, 2026**
+**Last updated: June 18, 2026**
 
 NetScope ("the App") is a free network diagnostic tool for iPhone. This policy explains what information the App accesses and stores, and how it is used.
 
@@ -8,7 +8,7 @@ NetScope ("the App") is a free network diagnostic tool for iPhone. This policy e
 
 ## Summary
 
-> **NetScope does not collect, transmit, or sell your data. Everything stays on your device.**
+> **NetScope has no servers and no analytics — the developer never receives, stores, or sells your data, and your results live on your device.** Running a speed test does send your IP address to the test backbone (Cloudflare by default, or M-Lab if you choose an M-Lab location) and to ipinfo.io, as any speed test must. **Important:** if you choose an **M-Lab** location, that test — your IP address, the time, and your measured speeds — is published publicly by M-Lab as open data under a CC0 license, and that cannot be undone. The app shows a one-time consent prompt before your first M-Lab test, and Cloudflare (not published) is always the default.
 
 ---
 
@@ -19,21 +19,23 @@ NetScope ("the App") is a free network diagnostic tool for iPhone. This policy e
 | **Speed test results** | Download/upload speeds, ping, jitter, timestamp, and network type. Kept until you clear them via Settings. |
 | **Location** *(optional)* | GPS coordinates stamped on test results, only if you grant Location permission. Stored locally; never sent to the developer. |
 | **Network details** | Wi-Fi name (SSID), router identifier (BSSID), signal strength, cellular carrier, and generation (5G/LTE/etc.). |
-| **IP addresses** | Your public IP address (returned by Cloudflare during a test) and your local network IP. Stored in test history on your device only. |
+| **IP addresses** | Your public IP address (from ipinfo.io and the test backbone) and your local network IP, stored in your on-device history. On the **M-Lab** path your public IP is also transmitted to and published by M-Lab — see Third-party services. |
 | **ISP info** | Internet Service Provider name and approximate city, resolved from your IP by ipinfo.io. Stored locally. |
 
 ---
 
 ## Third-party services
 
-Two external services are contacted **only when you run a speed test**. Neither service receives your name, GPS coordinates, device ID, or test history.
+External services are contacted when you open the Speed tab (to list nearby servers and measure their ping), pick a server, or run a test. None of them receives your name, GPS coordinates, device ID, or test history.
 
 | Service | Purpose | Data sent |
 |---------|---------|-----------|
-| **Cloudflare** (`speed.cloudflare.com`) | Speed test measurement | Your IP address; network traffic during the test |
+| **Cloudflare** (`speed.cloudflare.com`) | Default speed-test backbone | Your IP address; network traffic during the test |
+| **M-Lab / Measurement Lab** (`measurement-lab.org`) | Optional open-source backbone you can select | Your IP address and the test traffic. **M-Lab publishes every test run against it — your IP, the time, and your measured speeds — as an open public dataset under a CC0 license.** Only contacted when you list/select an M-Lab server or run a test against one. |
 | **ipinfo.io** | ISP name and city lookup | Your IP address |
 
 - Cloudflare Privacy Policy: https://www.cloudflare.com/privacypolicy/
+- M-Lab Privacy Policy: https://www.measurementlab.net/privacy/
 - ipinfo.io Privacy Policy: https://ipinfo.io/privacy
 
 ---
@@ -99,7 +101,7 @@ The following categories apply to NetScope for App Store Connect disclosure:
 |----------|-----------|--------------------|-------------------|
 | Precise location | No | — | No |
 | Coarse location | Yes (if granted) | No | No |
-| IP address | Yes (stored locally) | No | No |
-| Other network info | Yes (stored locally) | No | No |
+| IP address | Yes | No | No |
+| Other network info | Yes | No | No |
 
-All data collected is stored locally on the user's device and is not linked to identity or used for tracking.
+NetScope itself has no servers, no analytics, no ads, and does not track you across apps or websites. On the default **Cloudflare** path, network/IP data is used only for the live test and stored on your device. If you choose an **M-Lab** location, your IP address, the test time, and your measured speeds are transmitted to M-Lab (a third party) and published by M-Lab as an open, CC0-licensed public dataset. Set the App Store Connect "App Privacy" answers to reflect that, on the M-Lab path, IP address and diagnostics are **collected by and shared with a third party**.

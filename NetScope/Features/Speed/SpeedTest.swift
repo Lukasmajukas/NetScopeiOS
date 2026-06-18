@@ -874,7 +874,9 @@ final class ServerDirectory {
             await Self.ping(&ls)            // first load: fetch + ping
             libreCache = ls
         } else if repingLibre {
-            await Self.ping(&libreCache)    // explicit user refresh: re-check stale/dead hosts
+            var ls = libreCache             // explicit user refresh: re-check stale/dead hosts
+            await Self.ping(&ls)
+            libreCache = ls
         }
 
         var dynamic: [SpeedServer] = [.cloudflare]

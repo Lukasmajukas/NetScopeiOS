@@ -21,6 +21,10 @@ final class AISummarizer {
     }
     var state: State = .idle
 
+    /// Monotonic token: a new summarize() or a reset() bumps it, so an older in-flight
+    /// request (one whose result is now stale, or a superseded duplicate tap) won't write.
+    @ObservationIgnored private var generation = 0
+
     /// Cached so SwiftUI body re-evaluations during a running test don't re-hit the
     /// Foundation Models availability API ~5×/sec. Refreshed via `refreshAvailability()`.
     private(set) var available = false

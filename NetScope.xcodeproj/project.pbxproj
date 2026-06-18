@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0AF894CFCC37B3DEC125B1A8 /* Pro.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AF0A23CAEC562182CFABB1 /* Pro.swift */; };
+		288A75720FF7BD330E450ABA /* Intents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30D29649A091E6050EF9C8F0 /* Intents.swift */; };
 		2D3D72140A353F0ADC337C15 /* Devices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953E4B7DE20FD93E681A6001 /* Devices.swift */; };
 		49880B78E0AAF1C71B3C70C2 /* SpeedTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D1D89EEC10603A399EC0F2E /* SpeedTest.swift */; };
 		5FB6323A509829E5CC5BED96 /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA24A40246DEE949CAD749E /* Connection.swift */; };
@@ -18,6 +19,7 @@
 		A5A6282A4975F75CAE333060 /* NetScopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772971C23C197581B709D78 /* NetScopeApp.swift */; };
 		A9B5CD933DE4C238756DDF08 /* Learn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B983DA884B98BE60B1C05CA /* Learn.swift */; };
 		AEE69F63C2C04E90FF8AF3B0 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94B47411BB7EE7D9303D793 /* Settings.swift */; };
+		BAB27C11F1EDD5AF5484F54F /* AppIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3738118F5786390DDD9FE32E /* AppIntelligence.swift */; };
 		DDAA9A21C62AC62C789D8458 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B53727EE4708265FC0CE55A /* Assets.xcassets */; };
 		EC2901C019994080FBF84ED4 /* Enrichment.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6251FDAAA9C0A003968B4F /* Enrichment.swift */; };
 		F93E68C3B2361363473BA3E7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C00A95F7C1AE3FA1596DAFE /* Theme.swift */; };
@@ -27,6 +29,8 @@
 		0027DF7DF68284D28595561C /* Privacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Privacy.swift; sourceTree = "<group>"; };
 		0B53727EE4708265FC0CE55A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		29FCD09D78E7559AB0BEA076 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		30D29649A091E6050EF9C8F0 /* Intents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intents.swift; sourceTree = "<group>"; };
+		3738118F5786390DDD9FE32E /* AppIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntelligence.swift; sourceTree = "<group>"; };
 		3B983DA884B98BE60B1C05CA /* Learn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Learn.swift; sourceTree = "<group>"; };
 		3D1D89EEC10603A399EC0F2E /* SpeedTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTest.swift; sourceTree = "<group>"; };
 		7C00A95F7C1AE3FA1596DAFE /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -109,6 +113,7 @@
 		99ED124124667D9037B69A91 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				3738118F5786390DDD9FE32E /* AppIntelligence.swift */,
 				7C00A95F7C1AE3FA1596DAFE /* Theme.swift */,
 				CDBA743474FD7CC987D15400 /* Tools.swift */,
 			);
@@ -126,6 +131,7 @@
 		B0A2D80C46AE91D635E8532D /* App */ = {
 			isa = PBXGroup;
 			children = (
+				30D29649A091E6050EF9C8F0 /* Intents.swift */,
 				C772971C23C197581B709D78 /* NetScopeApp.swift */,
 			);
 			path = App;
@@ -224,10 +230,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BAB27C11F1EDD5AF5484F54F /* AppIntelligence.swift in Sources */,
 				5FB6323A509829E5CC5BED96 /* Connection.swift in Sources */,
 				86674F530839C9A3FBFFEE24 /* Coverage.swift in Sources */,
 				2D3D72140A353F0ADC337C15 /* Devices.swift in Sources */,
 				EC2901C019994080FBF84ED4 /* Enrichment.swift in Sources */,
+				288A75720FF7BD330E450ABA /* Intents.swift in Sources */,
 				A9B5CD933DE4C238756DDF08 /* Learn.swift in Sources */,
 				A5A6282A4975F75CAE333060 /* NetScopeApp.swift in Sources */,
 				6A1151BA5E3278D2AD9988C5 /* Privacy.swift in Sources */,

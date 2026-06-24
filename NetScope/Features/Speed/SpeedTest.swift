@@ -338,6 +338,11 @@ final class SpeedTestEngine: NSObject {
                                  serverCity: info.serverCity.isEmpty ? info.server : info.serverCity,
                                  isVPN: isVPNActive())
         onFinished?(result)
+        // CoverageMap: contribute the result to its coverage map. The view's per-provider
+        // consent gate blocks an un-consented CoverageMap run, so consent is guaranteed here.
+        if srv.provider == .coveragemap {
+            await CoverageMap.report(result, server: srv)
+        }
         running = false
     }
 

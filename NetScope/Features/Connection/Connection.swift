@@ -339,6 +339,13 @@ func cellCapability(_ gen: String) -> String {
     return "—"
 }
 
+/// One active cellular service (a SIM's current radio), for dual-SIM display.
+struct CellRadio: Identifiable {
+    let id: String       // CoreTelephony service identifier
+    let tech: String     // raw RAT, e.g. "CTRadioAccessTechnologyNRNSA"
+    let isData: Bool     // true for the active data SIM
+}
+
 // MARK: - Map (Apple Maps showing where you're connected)
 
 @MainActor

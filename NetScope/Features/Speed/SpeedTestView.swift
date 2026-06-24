@@ -76,6 +76,7 @@ struct SpeedTestView: View {
     // hosts). Cloudflare needs none. Bump the key suffix if the disclosure text changes.
     @AppStorage("mlabConsentAcceptedV1") private var mlabConsented = false
     @AppStorage("libreConsentAcceptedV1") private var libreConsented = false
+    @AppStorage("cmConsentAcceptedV1") private var cmConsented = false
     @State private var showConsent = false
     @State private var consentProvider: SpeedServer.Provider = .mlab
 

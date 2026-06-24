@@ -999,9 +999,11 @@ final class ServerDirectory {
         }
 
         if cmCache.isEmpty {
-            var cm = await CoverageMap.fetch()
+            let (discovered, conn) = await CoverageMap.discover()
+            var cm = discovered
             await Self.ping(&cm)
             cmCache = cm
+            cmConnection = conn
         } else if repingLibre {
             var cm = cmCache
             await Self.ping(&cm)

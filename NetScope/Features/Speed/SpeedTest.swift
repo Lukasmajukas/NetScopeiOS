@@ -922,8 +922,10 @@ final class ServerDirectory {
     /// it and refreshing re-queries M-Lab's Locate API for that country's servers.
     var mlabCountry: String? = nil
 
-    /// LibreSpeed's list is static across countries, so fetch + ping it once and reuse.
+    /// LibreSpeed and CoverageMap lists are static across the M-Lab country filter, so
+    /// fetch + ping each once and reuse (re-pinged only on an explicit manual refresh).
     @ObservationIgnored private var libreCache: [SpeedServer] = []
+    @ObservationIgnored private var cmCache: [SpeedServer] = []
     // Coalesce a refresh requested while one is already running (e.g. a second country
     // tap mid-fetch), so the final fetch always reflects the user's last choice.
     @ObservationIgnored private var pendingRefresh = false

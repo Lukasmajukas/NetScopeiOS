@@ -640,7 +640,7 @@ struct ServerConsentSheet: View {
                         Image(systemName: icon)
                             .font(.system(size: 30)).foregroundStyle(Color.nsAccent)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(provider == .mlab ? "Public measurement" : "Third-party server")
+                            Text(title)
                                 .font(.title3.weight(.bold)).foregroundStyle(Color.nsTxt)
                             Text("\(network) · \(place)").font(.caption).foregroundStyle(Color.nsFaint)
                         }

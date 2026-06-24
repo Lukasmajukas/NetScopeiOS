@@ -657,8 +657,8 @@ final class SpeedTestEngine: NSObject {
             let t = Date()
             if steadyStart == nil, t.timeIntervalSince(t0) >= warmup { window.reset(); steadyStart = t }
             // Keep download frames flowing (each START yields a finite 500-frame batch).
-            if dir == .download, t.timeIntervalSince(lastStart) > 0.8 {
-                for task in tasks { task.send(.string("START 256 500")) { _ in } }
+            if dir == .download, t.timeIntervalSince(lastStart) > 0.5 {
+                for task in tasks { task.send(.string(startCmd)) { _ in } }
                 lastStart = t
             }
             let base = steadyStart ?? t0

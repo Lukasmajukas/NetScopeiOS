@@ -916,6 +916,9 @@ struct SpeedServer: Identifiable, Equatable, Sendable {
 final class ServerDirectory {
     private(set) var servers: [SpeedServer] = [.cloudflare]
     var selectedID: SpeedServer.ID = SpeedServer.cloudflare.id
+    /// True once the user explicitly picks a server, so refresh stops overriding it with
+    /// the CoverageMap default.
+    var userSelected = false
     private(set) var loading = false
 
     /// Optional ISO 3166-1 country filter for M-Lab (nil = geo-nearest). Changing

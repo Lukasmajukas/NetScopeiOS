@@ -103,14 +103,24 @@ struct SpeedTestView: View {
         engine.start(runContext(), server: server)
     }
 
-    /// Auto-start a test without ever showing the consent prompt — used by Shortcuts/Siri
-    /// automation. Silently skips when a test is running or the selected backbone still
-    /// needs consent (the default is Cloudflare, which never does).
+    /// Auto-start a test from Shortcuts/Siri automation. Waits for server discovery so it
+    /// targets the same server the manual button would (the CoverageMap primary default),
+    /// then either runs it or — if that backbone needs one-time consent — surfaces the consent
+    /// sheet rather than silently doing nothing.
     private func autoRunIfAllowed() {
         Task {
-            try? await Task.sleep(nanoseconds: 600_000_000)   // let the path monitor settle
+            if directory.servers.count <= 1 { await directory.refresh() }
+            // Wait (bounded) for discovery to populate the directory so the choice is
+            // deterministic regardless of which task kicked the refresh off.
+            for _ in 0..<20 where directory.servers.count <= 1 {
+                try? await Task.sleep(nanoseconds: 200_000_000)   // up to ~4s on a slow network
+            }
+            guard !engine.running else { return }
             let s = directory.selected
-            if !engine.running && !needsConsent(s.provider) {
+            if needsConsent(s.provider) {
+                consentProvider = s.provider
+                showConsent = true                 // one-time prompt, then the user can run it
+            } else {
                 engine.start(runContext(), server: s)
             }
         }

@@ -32,6 +32,7 @@ final class ConnectionMonitor {
     var cellGeneration = ""        // "5G", "4G LTE", "3G", "2G"
     var cellStandalone = ""        // "Standalone" / "Non-Standalone" / ""
     var cellTechRaw = ""           // e.g. "CTRadioAccessTechnologyNRNSA"
+    var cellRadios: [CellRadio] = [] // all active cellular services (dual-SIM aware)
 
     // Public side (works on Wi-Fi and cellular)
     var publicIP = ""

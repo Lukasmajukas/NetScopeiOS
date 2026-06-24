@@ -361,8 +361,7 @@ struct SpeedTestView: View {
                     ForEach(ServerDirectory.countries, id: \.name) { c in
                         Button {
                             if directory.mlabCountry != c.code {
-                                directory.mlabCountry = c.code
-                                Task { await directory.refresh() }
+                                Task { await directory.selectMLabCountry(c.code) }
                             }
                         } label: {
                             if directory.mlabCountry == c.code { Label(c.name, systemImage: "checkmark") }

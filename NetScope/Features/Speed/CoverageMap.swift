@@ -12,6 +12,13 @@ import UIKit
 // binary-burst upload) — driven by SpeedTestEngine. After a run, the result is POSTed to
 // map.coveragemap.com to contribute to the coverage map — ONLY after the in-app consent gate.
 
+/// Connection context from CoverageMap's `/v1/connection` — surfaced in the UI.
+struct CMConnectionInfo: Sendable, Equatable {
+    let isp: String     // client.asOrg, e.g. "Holyoke Gas & Electric Department"
+    let place: String   // "City, Region"
+    let edge: String    // nearest CoverageMap serving edge (city / data center)
+}
+
 enum CoverageMap {
     static let apiBase   = "https://api.speed.coveragemap.com"
     static let reportURL = "https://map.coveragemap.com/api/v1/speedTests"

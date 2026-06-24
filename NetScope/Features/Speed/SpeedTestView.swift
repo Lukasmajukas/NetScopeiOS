@@ -394,7 +394,7 @@ struct SpeedTestView: View {
 
     private func serverRow(_ s: SpeedServer) -> some View {
         let isSelected = directory.selectedID == s.id
-        return Button { directory.selectedID = s.id } label: {
+        return Button { directory.selectedID = s.id; directory.userSelected = true } label: {
             HStack(spacing: 12) {
                 Image(systemName: providerIcon(s.provider))
                     .font(.system(size: 18))

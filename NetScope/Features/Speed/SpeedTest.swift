@@ -616,6 +616,72 @@ final class SpeedTestEngine: NSObject {
         }
     }
 
+    // MARK: CoverageMap — WebSocket download (START → binary frames) / upload (binary burst)
+    //
+    // Opens `streams` sockets to wss://host:port/v1/ws. Download: each sends "START <kb> 500"
+    // and the server streams binary frames we count; we re-issue START periodically to keep
+    // the pipe full. Upload: each socket bursts fixed binary chunks (server ACKs are ignored).
+
+    private func coverageMapStream(_ dir: Dir, url: URL?, seconds: Double) async -> (Double, Int) {
+        guard let url else { return (0, 0) }
+        let window = ByteCounter()
+        let total  = ByteCounter()
+        var tasks: [URLSessionWebSocketTask] = []
+        let deadline = Date().addingTimeInterval(seconds)
+        for _ in 0..<streams {
+            let t = wsSession.webSocketTask(with: url)
+            t.resume()
+            if dir == .download {
+                t.send(.string("START 256 500")) { _ in }
+                Self.cmReceive(t, window: window, total: total)
+            } else {
+                Self.pumpSend(t, buf: Data(count: 1 << 18), window: window, total: total, deadline: deadline)
+            }
+            tasks.append(t)
+        }
+
+        live = 0; progress = 0; scaleMax = 100
+        let t0 = Date()
+        let warmup = min(2.0, seconds * 0.25)
+        var steadyStart: Date? = nil
+        var lastStart = Date()
+        window.reset()
+        while Date().timeIntervalSince(t0) < seconds {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            let t = Date()
+            if steadyStart == nil, t.timeIntervalSince(t0) >= warmup { window.reset(); steadyStart = t }
+            // Keep download frames flowing (each START yields a finite 500-frame batch).
+            if dir == .download, t.timeIntervalSince(lastStart) > 0.8 {
+                for task in tasks { task.send(.string("START 256 500")) { _ in } }
+                lastStart = t
+            }
+            let base = steadyStart ?? t0
+            let span = max(0.001, t.timeIntervalSince(base))
+            let avg = Double(window.value) * 8 / span / 1e6
+            live = avg
+            if avg > scaleMax { scaleMax = niceMax(avg) }
+            if let steadyStart {
+                progress = min(1, t.timeIntervalSince(steadyStart) / max(0.001, seconds - warmup))
+            } else {
+                progress = min(0.2, t.timeIntervalSince(t0) / warmup * 0.2)
+            }
+        }
+        tasks.forEach { $0.cancel(with: .goingAway, reason: nil) }
+        let base = steadyStart ?? t0
+        let span = max(0.001, Date().timeIntervalSince(base))
+        return (Double(window.value) * 8 / span / 1e6, total.value)
+    }
+
+    /// Recursively receive CoverageMap download frames (binary), counting bytes.
+    nonisolated private static func cmReceive(_ task: URLSessionWebSocketTask,
+                                              window: ByteCounter, total: ByteCounter) {
+        task.receive { result in
+            guard case .success(let msg) = result else { return }
+            if case .data(let d) = msg { window.add(d.count); total.add(d.count) }
+            cmReceive(task, window: window, total: total)
+        }
+    }
+
     private func round1(_ v: Double) -> Double { (v * 10).rounded() / 10 }
 }
 

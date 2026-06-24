@@ -584,21 +584,52 @@ struct ServerConsentSheet: View {
     let onAgree: () -> Void
     let onCancel: () -> Void
 
-    private var icon: String { provider == .mlab ? "globe.americas.fill" : "server.rack" }
-    private var network: String { provider == .mlab ? "M-Lab" : "LibreSpeed" }
+    private var icon: String {
+        switch provider {
+        case .mlab: return "globe.americas.fill"
+        case .coveragemap: return "map.circle.fill"
+        default: return "server.rack"
+        }
+    }
+    private var network: String {
+        switch provider {
+        case .mlab: return "M-Lab"
+        case .coveragemap: return "CoverageMap"
+        default: return "LibreSpeed"
+        }
+    }
+    private var title: String {
+        switch provider {
+        case .mlab: return "Public measurement"
+        case .coveragemap: return "Coverage contribution"
+        default: return "Third-party server"
+        }
+    }
     private var lead: String {
-        provider == .mlab
-            ? "You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it."
-            : "You picked a **LibreSpeed** server. These are community-donated servers run by third parties (ISPs, hosts), **not operated by NetScope**."
+        switch provider {
+        case .mlab:
+            return "You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it."
+        case .coveragemap:
+            return "You picked a **CoverageMap** server. CoverageMap builds a crowd-sourced map of network coverage from speed tests."
+        default:
+            return "You picked a **LibreSpeed** server. These are community-donated servers run by third parties (ISPs, hosts), **not operated by NetScope**."
+        }
     }
     private var bullets: [String] {
-        provider == .mlab
-            ? ["Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.",
-               "This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.",
-               "Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published."]
-            : ["Running this test sends your **public IP address** and full-rate test traffic to a **third-party server NetScope doesn't control**.",
-               "The result isn't published as an open dataset, but the host operator can see your IP and connection — treat it like visiting any third-party website.",
-               "Prefer to stick with a first-party backbone? Tap **Cancel** and choose **Cloudflare**."]
+        switch provider {
+        case .mlab:
+            return ["Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.",
+                    "This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.",
+                    "Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published."]
+        case .coveragemap:
+            return ["Running this test sends your **public IP address** and test traffic to a CoverageMap server.",
+                    "Your **result** — IP, approximate location, and measured speeds — is **uploaded to CoverageMap** to contribute to its public coverage map.",
+                    "Prefer not to contribute? Tap **Cancel** and choose **Cloudflare** — it stays on your device."]
+        default:
+            return ["Running this test sends your **public IP address** and full-rate test traffic to a **third-party server NetScope doesn't control**.",
+                    "The result isn't published as an open dataset, but the host operator can see your IP and connection — treat it like visiting any third-party website.",
+                    "Prefer to stick with a first-party backbone? Tap **Cancel** and choose **Cloudflare**."]
+        }
     }
 
     var body: some View {

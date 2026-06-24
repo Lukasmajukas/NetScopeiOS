@@ -276,7 +276,7 @@ struct SpeedTestView: View {
     private var failedNote: some View {
         HStack(spacing: 8) {
             Image(systemName: "wifi.exclamationmark").foregroundStyle(Color(hex: 0xff6b6b))
-            Text("Couldn't reach the server. Check your connection and try again — nothing was saved.")
+            Text("The test couldn't complete — one direction didn't respond (offline, or this server's download or upload stalled). Nothing was saved; try again or pick another server.")
                 .font(.caption).foregroundStyle(Color.nsTxt)
             Spacer(minLength: 0)
         }

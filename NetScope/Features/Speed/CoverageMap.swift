@@ -12,6 +12,13 @@ import UIKit
 // binary-burst upload) — driven by SpeedTestEngine. After a run, the result is POSTed to
 // map.coveragemap.com to contribute to the coverage map — ONLY after the in-app consent gate.
 
+/// Connection context from CoverageMap's `/v1/connection` — surfaced in the UI.
+struct CMConnectionInfo: Sendable, Equatable {
+    let isp: String     // client.asOrg, e.g. "Holyoke Gas & Electric Department"
+    let place: String   // "City, Region"
+    let edge: String    // nearest CoverageMap serving edge (city / data center)
+}
+
 enum CoverageMap {
     static let apiBase   = "https://api.speed.coveragemap.com"
     static let reportURL = "https://map.coveragemap.com/api/v1/speedTests"
@@ -37,23 +44,34 @@ enum CoverageMap {
         let premium: Bool?
     }
     private struct Connection: Decodable {
-        struct Client: Decodable { let latitude: Double?; let longitude: Double? }
+        struct Client: Decodable {
+            let city: String?; let region: String?; let asOrg: String?
+            let latitude: Double?; let longitude: Double?
+        }
+        struct Server: Decodable { let provider: String?; let dataCenter: String?; let city: String? }
         let client: Client?
+        let server: Server?
     }
 
-    static func fetch() async -> [SpeedServer] {
-        // Geolocate via the API (server-side, from the client IP) to bias the server list.
+    /// Discovery: `/v1/connection` (geolocation + ISP + serving edge) → `/v1/list` (city servers).
+    /// Returns the up-to-`maxServers` nearest non-premium servers AND the connection info, so the
+    /// UI can surface "your ISP / location / nearest CoverageMap edge" without a second round-trip.
+    static func discover() async -> (servers: [SpeedServer], connection: CMConnectionInfo?) {
         var lat: Double?, lon: Double?
+        var info: CMConnectionInfo?
         if let url = URL(string: "\(apiBase)/v1/connection"),
            let (d, _) = try? await session.data(from: url),
            let c = try? JSONDecoder().decode(Connection.self, from: d) {
             lat = c.client?.latitude; lon = c.client?.longitude
+            let place = [c.client?.city, c.client?.region].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+            let edge = c.server.flatMap { s in [s.city, s.dataCenter].compactMap { $0 }.first } ?? ""
+            info = CMConnectionInfo(isp: c.client?.asOrg ?? "", place: place, edge: edge)
         }
         var listStr = "\(apiBase)/v1/list"
         if let lat, let lon { listStr += "?latitude=\(lat)&longitude=\(lon)" }
         guard let listURL = URL(string: listStr),
               let (d, _) = try? await session.data(from: listURL),
-              let raw = try? JSONDecoder().decode([RawServer].self, from: d) else { return [] }
+              let raw = try? JSONDecoder().decode([RawServer].self, from: d) else { return ([], info) }
 
         var out: [SpeedServer] = []
         for s in raw where !(s.premium ?? false) {       // premium servers need a paid account
@@ -65,7 +83,7 @@ enum CoverageMap {
                 downloadURL: url, uploadURL: url, pingMs: nil))
             if out.count >= maxServers { break }          // list is distance-sorted
         }
-        return out
+        return (out, info)
     }
 
     /// Best-effort contribution of a completed result to the coverage map. Non-fatal on

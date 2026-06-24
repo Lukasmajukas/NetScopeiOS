@@ -928,6 +928,8 @@ final class ServerDirectory {
     /// the CoverageMap default.
     var userSelected = false
     private(set) var loading = false
+    /// Connection context from CoverageMap's `/v1/connection` (ISP, location, nearest edge).
+    private(set) var cmConnection: CMConnectionInfo?
 
     /// Optional ISO 3166-1 country filter for M-Lab (nil = geo-nearest). Changing
     /// it and refreshing re-queries M-Lab's Locate API for that country's servers.
@@ -997,9 +999,11 @@ final class ServerDirectory {
         }
 
         if cmCache.isEmpty {
-            var cm = await CoverageMap.fetch()
+            let (discovered, conn) = await CoverageMap.discover()
+            var cm = discovered
             await Self.ping(&cm)
             cmCache = cm
+            cmConnection = conn
         } else if repingLibre {
             var cm = cmCache
             await Self.ping(&cm)

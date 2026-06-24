@@ -982,11 +982,21 @@ final class ServerDirectory {
             libreCache = ls
         }
 
+        if cmCache.isEmpty {
+            var cm = await CoverageMap.fetch()
+            await Self.ping(&cm)
+            cmCache = cm
+        } else if repingLibre {
+            var cm = cmCache
+            await Self.ping(&cm)
+            cmCache = cm
+        }
+
         var dynamic: [SpeedServer] = [.cloudflare]
         dynamic += await MLabLocate.fetch(country: mlabCountry)
         await Self.ping(&dynamic)
 
-        var list = dynamic + libreCache
+        var list = dynamic + libreCache + cmCache
         list.sort { ($0.pingMs ?? .infinity) < ($1.pingMs ?? .infinity) }
         servers = list
         // Keep the user's pick if still present; otherwise fall back to the

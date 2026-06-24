@@ -84,9 +84,10 @@ struct SpeedTestView: View {
     /// Whether running against this provider still needs a one-time consent prompt.
     private func needsConsent(_ p: SpeedServer.Provider) -> Bool {
         switch p {
-        case .cloudflare: return false              // anycast, not published, not third-party
-        case .mlab:       return !mlabConsented
-        case .librespeed: return !libreConsented
+        case .cloudflare:  return false             // anycast, not published, not third-party
+        case .mlab:        return !mlabConsented
+        case .librespeed:  return !libreConsented
+        case .coveragemap: return !cmConsented
         }
     }
 

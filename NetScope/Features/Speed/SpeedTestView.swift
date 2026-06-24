@@ -363,7 +363,10 @@ struct SpeedTestView: View {
                 }
                 .disabled(directory.loading)
             }
-            // M-Lab can return servers for a chosen country, not just the nearest.
+            // Compact dropdown: the selected server, tap to choose from the grouped menu.
+            Menu { serverMenuContent } label: { serverDropdownLabel }
+                .disabled(directory.loading || engine.running)
+            // M-Lab country — only changes which M-Lab cities the menu offers.
             HStack {
                 Text("M-Lab country").font(.caption).foregroundStyle(Color.nsMuted)
                 Spacer()
@@ -387,44 +390,105 @@ struct SpeedTestView: View {
                 }
                 .disabled(directory.loading)
             }
-            if directory.servers.count <= 1 && directory.loading {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Finding nearby servers…").font(.caption).foregroundStyle(Color.nsFaint)
-                }
-            }
-            ForEach(directory.servers) { serverRow($0) }
-            Text("Throughput runs on Cloudflare's nearest edge, M-Lab / NDT7, LibreSpeed, or CoverageMap — open measurement networks. Pick a city (or an M-Lab country) to test a specific route; ping shows the TCP round-trip to each.")
+            Text("Throughput runs on CoverageMap (primary), M-Lab / NDT7, LibreSpeed, or Cloudflare. Pick a city to test a specific route; ping is the TCP round-trip to each.")
                 .font(.caption2).foregroundStyle(Color.nsFaint)
         }
         .disabled(engine.running)
         .opacity(engine.running ? 0.6 : 1)
     }
 
-    private func serverRow(_ s: SpeedServer) -> some View {
-        let isSelected = directory.selectedID == s.id
-        return Button { directory.selectedID = s.id; directory.userSelected = true } label: {
-            HStack(spacing: 12) {
-                Image(systemName: providerIcon(s.provider))
-                    .font(.system(size: 18))
-                    .foregroundStyle(isSelected ? Color.nsAccent : Color.nsFaint)
-                    .frame(width: 22)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(s.shortPlace).font(.subheadline.weight(.medium)).foregroundStyle(Color.nsTxt)
-                    Text(s.detail).font(.caption2).foregroundStyle(Color.nsFaint)
-                }
-                Spacer()
-                Text(pingText(s.pingMs)).font(.caption.monospacedDigit())
-                    .foregroundStyle(latencyColor(s.pingMs))
-                    .contentTransition(.numericText())
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.nsAccent : Color.nsLine)
+    /// The dropdown's visible label = the currently-selected server.
+    private var serverDropdownLabel: some View {
+        let s = directory.selected
+        return HStack(spacing: 12) {
+            Image(systemName: providerIcon(s.provider))
+                .font(.system(size: 18)).foregroundStyle(Color.nsAccent).frame(width: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(s.shortPlace).font(.subheadline.weight(.medium)).foregroundStyle(Color.nsTxt)
+                Text(s.detail).font(.caption2).foregroundStyle(Color.nsFaint)
             }
-            .padding(.vertical, 7)
-            .contentShape(Rectangle())
+            Spacer()
+            if directory.loading && directory.servers.count <= 1 {
+                ProgressView().controlSize(.small)
+            } else {
+                Text(pingText(s.pingMs)).font(.caption.monospacedDigit())
+                    .foregroundStyle(latencyColor(s.pingMs)).contentTransition(.numericText())
+            }
+            Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Color.nsFaint)
         }
-        .buttonStyle(.plain)
-        .overlay(alignment: .bottom) { Divider().overlay(Color.nsLine) }
+        .padding(.vertical, 11).padding(.horizontal, 12)
+        .background(Color.nsSurface2, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+    }
+
+    /// Dropdown contents — servers grouped by provider, CoverageMap (primary) first.
+    @ViewBuilder
+    private var serverMenuContent: some View {
+        let grouped = Dictionary(grouping: directory.servers, by: { $0.provider })
+        ForEach([SpeedServer.Provider.coveragemap, .mlab, .librespeed, .cloudflare], id: \.self) { prov in
+            if let group = grouped[prov], !group.isEmpty {
+                Section(providerName(prov)) {
+                    ForEach(group.sorted { ($0.pingMs ?? .infinity) < ($1.pingMs ?? .infinity) }) { s in
+                        Button {
+                            directory.selectedID = s.id
+                            directory.userSelected = true
+                        } label: {
+                            Label("\(s.shortPlace) · \(pingText(s.pingMs))",
+                                  systemImage: directory.selectedID == s.id ? "checkmark" : providerIcon(prov))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func providerName(_ p: SpeedServer.Provider) -> String {
+        switch p {
+        case .coveragemap: return "CoverageMap"
+        case .mlab:        return "M-Lab"
+        case .librespeed:  return "LibreSpeed"
+        case .cloudflare:  return "Cloudflare"
+        }
+    }
+
+    // MARK: CoverageMap (primary backbone, surfaced)
+
+    @ViewBuilder
+    private var coverageMapInfoCard: some View {
+        if let c = directory.cmConnection {
+            Card {
+                HStack(spacing: 8) {
+                    Image(systemName: "map.circle.fill").foregroundStyle(Color.nsAccent)
+                    Text("COVERAGEMAP").font(.caption2.weight(.semibold)).tracking(1.1)
+                        .foregroundStyle(Color.nsMuted)
+                    if directory.selected.provider == .coveragemap {
+                        Text("PRIMARY").font(.system(size: 9, weight: .bold))
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.nsAccent.opacity(0.18), in: Capsule())
+                            .foregroundStyle(Color.nsAccent)
+                    }
+                    Spacer()
+                    Link(destination: URL(string: "https://map.coveragemap.com")!) {
+                        Label("Map", systemImage: "arrow.up.right.square.fill")
+                            .font(.caption.weight(.semibold)).foregroundStyle(Color.nsAccent)
+                    }
+                }
+                if !c.isp.isEmpty   { cmRow("Your ISP", c.isp) }
+                if !c.place.isEmpty { cmRow("Location", c.place) }
+                if !c.edge.isEmpty  { cmRow("Nearest edge", c.edge) }
+                Text("CoverageMap is the app's primary speed-test network. Tests against it contribute your result (IP, approximate location, speeds) to a crowd-sourced coverage map.")
+                    .font(.caption2).foregroundStyle(Color.nsFaint)
+            }
+        }
+    }
+
+    private func cmRow(_ k: String, _ v: String) -> some View {
+        HStack(alignment: .top) {
+            Text(k).foregroundStyle(Color.nsMuted)
+            Spacer()
+            Text(v).foregroundStyle(Color.nsTxt).multilineTextAlignment(.trailing).textSelection(.enabled)
+        }
+        .font(.caption).padding(.vertical, 3)
     }
 
     private var mlabCountryName: String {

@@ -23,7 +23,7 @@ targets:
         PRODUCT_NAME: NetScope
         PRODUCT_BUNDLE_IDENTIFIER: com.netscope.ios
         MARKETING_VERSION: "1.2"
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "5"
         INFOPLIST_FILE: NetScope/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "1"        # iPhone

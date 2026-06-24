@@ -796,7 +796,7 @@ enum CSVImport {
 // selectable locations with per-server ping.
 
 struct SpeedServer: Identifiable, Equatable, Sendable {
-    enum Provider: String, Sendable { case cloudflare, mlab, librespeed }
+    enum Provider: String, Sendable { case cloudflare, mlab, librespeed, coveragemap }
 
     let id: String
     let provider: Provider

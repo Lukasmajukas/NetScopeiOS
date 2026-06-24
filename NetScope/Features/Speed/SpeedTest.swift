@@ -498,6 +498,9 @@ final class SpeedTestEngine: NSObject {
         case .librespeed:
             out.serverCity = server.city
             out.server = server.city.isEmpty ? "LibreSpeed" : "LibreSpeed · \(server.city)"
+        case .coveragemap:
+            out.serverCity = server.city
+            out.server = server.city.isEmpty ? "CoverageMap" : "CoverageMap · \(server.city)"
         }
         return out
     }

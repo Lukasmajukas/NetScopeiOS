@@ -136,6 +136,9 @@ enum CoverageMap {
         _ = try? await session.data(for: req)
     }
 
+    /// JSON value: the string, or NSNull when empty (so `JSONSerialization` emits `null`).
+    private static func orNull(_ s: String) -> Any { s.isEmpty ? NSNull() : s }
+
     private static func connectionType(_ r: SpeedResult) -> String {
         let t = (r.connType ?? r.network).lowercased()
         if t.contains("wi-fi") || t.contains("wifi") { return "wifi" }

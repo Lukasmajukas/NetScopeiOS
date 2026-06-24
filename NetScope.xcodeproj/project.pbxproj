@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02DF5B22D3B481F096F03F07 /* CoverageMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6BD0B41EDDDB1A5A2D1C66 /* CoverageMap.swift */; };
 		0AF894CFCC37B3DEC125B1A8 /* Pro.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AF0A23CAEC562182CFABB1 /* Pro.swift */; };
 		288A75720FF7BD330E450ABA /* Intents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30D29649A091E6050EF9C8F0 /* Intents.swift */; };
 		2D3D72140A353F0ADC337C15 /* Devices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 953E4B7DE20FD93E681A6001 /* Devices.swift */; };
@@ -43,6 +44,7 @@
 		C772971C23C197581B709D78 /* NetScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetScopeApp.swift; sourceTree = "<group>"; };
 		CDBA743474FD7CC987D15400 /* Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tools.swift; sourceTree = "<group>"; };
 		D5AF0A23CAEC562182CFABB1 /* Pro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pro.swift; sourceTree = "<group>"; };
+		ED6BD0B41EDDDB1A5A2D1C66 /* CoverageMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverageMap.swift; sourceTree = "<group>"; };
 		FBA24A40246DEE949CAD749E /* Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -153,6 +155,7 @@
 		F445047D0E9A9C6F5AB21076 /* Speed */ = {
 			isa = PBXGroup;
 			children = (
+				ED6BD0B41EDDDB1A5A2D1C66 /* CoverageMap.swift */,
 				3D1D89EEC10603A399EC0F2E /* SpeedTest.swift */,
 				9F373CCEB4FCC1CE1FFCEEF4 /* SpeedTestView.swift */,
 			);
@@ -233,6 +236,7 @@
 				BAB27C11F1EDD5AF5484F54F /* AppIntelligence.swift in Sources */,
 				5FB6323A509829E5CC5BED96 /* Connection.swift in Sources */,
 				86674F530839C9A3FBFFEE24 /* Coverage.swift in Sources */,
+				02DF5B22D3B481F096F03F07 /* CoverageMap.swift in Sources */,
 				2D3D72140A353F0ADC337C15 /* Devices.swift in Sources */,
 				EC2901C019994080FBF84ED4 /* Enrichment.swift in Sources */,
 				288A75720FF7BD330E450ABA /* Intents.swift in Sources */,

@@ -626,13 +626,19 @@ final class SpeedTestEngine: NSObject {
         guard let url else { return (0, 0) }
         let window = ByteCounter()
         let total  = ByteCounter()
+        // Tuned for CoverageMap: 6 download sockets (more parallelism for fast links),
+        // 512 KB frames, and two queued batches per socket so a finished 500-frame batch
+        // never leaves a gap before the periodic re-START tops it up.
+        let socketCount = dir == .download ? 6 : 4
+        let startCmd = "START 512 500"
         var tasks: [URLSessionWebSocketTask] = []
         let deadline = Date().addingTimeInterval(seconds)
-        for _ in 0..<streams {
+        for _ in 0..<socketCount {
             let t = wsSession.webSocketTask(with: url)
             t.resume()
             if dir == .download {
-                t.send(.string("START 256 500")) { _ in }
+                t.send(.string(startCmd)) { _ in }   // first batch
+                t.send(.string(startCmd)) { _ in }   // queue a second to avoid mid-batch gaps
                 Self.cmReceive(t, window: window, total: total)
             } else {
                 Self.pumpSend(t, buf: Data(count: 1 << 18), window: window, total: total, deadline: deadline)

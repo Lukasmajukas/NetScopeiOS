@@ -941,6 +941,9 @@ final class ServerDirectory {
     // tap mid-fetch), so the final fetch always reflects the user's last choice.
     @ObservationIgnored private var pendingRefresh = false
     @ObservationIgnored private var pendingReping = false
+    // The CoverageMap default is applied ONCE (first successful load), so later refreshes
+    // (manual re-ping, country change) don't snap the selection back to CoverageMap.
+    @ObservationIgnored private var hasDefaulted = false
 
     /// Countries offered in the M-Lab location menu (label, ISO code; nil = nearest).
     static let countries: [(name: String, code: String?)] = [

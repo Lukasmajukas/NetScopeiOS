@@ -175,8 +175,11 @@ final class ConnectionMonitor {
             // Saw 5G within the last 8s but the live read dropped to LTE — that's
             // the classic NSA handover dip, so hold "5G · Non-Standalone" rather
             // than flickering to 4G (and don't keep asserting a stale "Standalone").
+            // Hold the raw too, so the "Radio" row + explanation (which read cellTechRaw)
+            // stay consistent with the held 5G state instead of showing "LTE (4G)".
             cellGeneration = "5G"
             cellStandalone = "Non-Standalone"
+            cellTechRaw = "CTRadioAccessTechnologyNRNSA"
         } else {
             cellGeneration = gen
             cellStandalone = sa

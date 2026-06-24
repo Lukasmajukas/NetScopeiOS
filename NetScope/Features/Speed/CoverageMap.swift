@@ -109,11 +109,10 @@ enum CoverageMap {
             "results": [
                 "dateTime": when,
                 "connectionType": connectionType(r),
-                "externalIpAddress": r.ip.isEmpty ? NSNull() : r.ip,
-                "ispName": r.isp.isEmpty ? NSNull() : r.isp,
+                "externalIpAddress": orNull(r.ip),
+                "ispName": orNull(r.isp),
                 "testStatus": "passed",
                 "location": location,
-                "externalIp": orNull(r.ip),
                 "server": ["id": String(server.id.dropFirst(3)), "domain": server.host,
                            "port": 443, "location": server.city],
                 "cellular": NSNull(), "wifi": NSNull(), "wired": NSNull(),

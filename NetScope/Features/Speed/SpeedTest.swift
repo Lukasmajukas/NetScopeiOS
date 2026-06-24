@@ -1013,13 +1013,29 @@ final class ServerDirectory {
         var list = dynamic + libreCache + cmCache
         list.sort { ($0.pingMs ?? .infinity) < ($1.pingMs ?? .infinity) }
         servers = list
-        // CoverageMap is the PRIMARY backbone: unless the user explicitly picked a server
-        // that's still present, default to the nearest CoverageMap server (falling back to
-        // Cloudflare only if CoverageMap discovery failed).
-        if !(userSelected && list.contains(where: { $0.id == selectedID })) {
+        // CoverageMap is the PRIMARY backbone: default to its nearest server ONCE (first
+        // load), or recover if the current selection vanished. A user's explicit pick — or a
+        // selection that's still present after the first default — is preserved, so a manual
+        // refresh or M-Lab country change doesn't snap back to CoverageMap.
+        let stillPresent = list.contains(where: { $0.id == selectedID })
+        if userSelected && stillPresent {
+            // keep the user's explicit pick
+        } else if !hasDefaulted || !stillPresent {
             selectedID = list.first(where: { $0.provider == .coveragemap })?.id
                 ?? SpeedServer.cloudflare.id
+            hasDefaulted = true
             userSelected = false
+        }
+    }
+
+    /// Filter M-Lab by country, then select that country's nearest M-Lab server (so the
+    /// country control actually changes what gets tested, not just the listed rows).
+    func selectMLabCountry(_ code: String?) async {
+        mlabCountry = code
+        await refresh()
+        if let m = servers.first(where: { $0.provider == .mlab }) {
+            selectedID = m.id
+            userSelected = true
         }
     }
 

@@ -288,6 +288,48 @@ func cellStandaloneLabel(_ raw: String) -> String {
     return ""
 }
 
+/// Human-friendly radio name, e.g. "5G NR · Non-Standalone", "LTE (4G)", "HSDPA (3G)".
+func cellTechFriendly(_ raw: String) -> String {
+    let t = raw.replacingOccurrences(of: "CTRadioAccessTechnology", with: "")
+    switch t {
+    case "NR":                                   return "5G NR · Standalone"
+    case "NRNSA":                                return "5G NR · Non-Standalone"
+    case "LTE":                                  return "LTE (4G)"
+    case "WCDMA":                                return "WCDMA (3G)"
+    case "HSDPA":                                return "HSDPA (3G)"
+    case "HSUPA":                                return "HSUPA (3G)"
+    case "CDMA1x":                               return "CDMA 1x"
+    case "CDMAEVDORev0", "CDMAEVDORevA", "CDMAEVDORevB": return "EV-DO (3G)"
+    case "eHRPD":                                return "eHRPD (3G)"
+    case "GPRS":                                 return "GPRS (2G)"
+    case "Edge":                                 return "EDGE (2G)"
+    default:                                     return t.isEmpty ? "—" : t
+    }
+}
+
+/// One-line, plain-English explanation of what the current radio means for the user.
+func cellTechExplain(_ raw: String) -> String {
+    switch cellGenerationLabel(raw) {
+    case "5G":
+        return raw.contains("NRNSA")
+            ? "5G riding on the 4G core (Non-Standalone) — 5G download speeds, but latency closer to LTE. This is the most common form of 5G today."
+            : "Standalone 5G on a pure 5G core — the lowest latency and the full benefit of 5G."
+    case "4G LTE": return "LTE (4G) — the mobile workhorse, typically tens to a couple hundred Mbps."
+    case "3G":     return "3G — legacy data at a few Mbps; most carriers are retiring it."
+    case "2G":     return "2G — minimal data, from the texts-and-voice era."
+    default:       return "Mobile data."
+    }
+}
+
+/// Rough real-world speed ceiling for a generation (educational, not a guarantee).
+func cellCapability(_ gen: String) -> String {
+    if gen.hasPrefix("5G")    { return "up to ~1–4 Gbps" }
+    if gen.contains("LTE")    { return "up to ~150–300 Mbps" }
+    if gen.contains("3G")     { return "up to ~5–40 Mbps" }
+    if gen.contains("2G")     { return "under ~0.3 Mbps" }
+    return "—"
+}
+
 // MARK: - Map (Apple Maps showing where you're connected)
 
 @MainActor

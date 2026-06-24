@@ -150,11 +150,19 @@ final class ConnectionMonitor {
         // Off cellular: drop stale modem info so the UI doesn't show 5G on Wi-Fi.
         guard networkType == "Cellular" else {
             cellTechRaw = ""; cellGeneration = ""; cellStandalone = ""; lastNRSeen = nil
+            cellRadios = []
             return
         }
         guard !raw.isEmpty else { return }   // transient empty read — keep last known
 
         cellTechRaw = raw
+        // All active cellular services (dual-SIM): data SIM first.
+        let dict = cti.serviceCurrentRadioAccessTechnology ?? [:]
+        let dataID = cti.dataServiceIdentifier
+        cellRadios = dict.compactMap { id, rat in
+            rat.isEmpty ? nil : CellRadio(id: id, tech: rat, isData: id == dataID)
+        }
+        .sorted { ($0.isData ? 0 : 1) < ($1.isData ? 0 : 1) }
         let gen = cellGenerationLabel(raw)
         let sa = cellStandaloneLabel(raw)
         let now = ProcessInfo.processInfo.systemUptime    // monotonic — immune to clock changes

@@ -811,17 +811,19 @@ struct SpeedServer: Identifiable, Equatable, Sendable {
     /// Short place label for the picker row.
     var shortPlace: String {
         switch provider {
-        case .cloudflare: return "Nearest (auto)"
-        case .mlab:       return country.isEmpty ? city : "\(city), \(country)"
-        case .librespeed: return city.isEmpty ? "LibreSpeed server" : city
+        case .cloudflare:  return "Nearest (auto)"
+        case .mlab:        return country.isEmpty ? city : "\(city), \(country)"
+        case .librespeed:  return city.isEmpty ? "LibreSpeed server" : city
+        case .coveragemap: return city.isEmpty ? "CoverageMap server" : city
         }
     }
     /// Sub-label naming the backbone/protocol.
     var detail: String {
         switch provider {
-        case .cloudflare: return "Cloudflare · anycast edge"
-        case .mlab:       return "M-Lab · NDT7"
-        case .librespeed: return sponsor.isEmpty ? "LibreSpeed" : "LibreSpeed · \(sponsor)"
+        case .cloudflare:  return "Cloudflare · anycast edge"
+        case .mlab:        return "M-Lab · NDT7"
+        case .librespeed:  return sponsor.isEmpty ? "LibreSpeed" : "LibreSpeed · \(sponsor)"
+        case .coveragemap: return "CoverageMap"
         }
     }
 

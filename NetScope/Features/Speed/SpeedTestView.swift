@@ -385,7 +385,7 @@ struct SpeedTestView: View {
                 }
             }
             ForEach(directory.servers) { serverRow($0) }
-            Text("Throughput runs on Cloudflare's nearest edge, M-Lab / NDT7, or LibreSpeed — open measurement networks. Pick a city (or an M-Lab country) to test a specific route; ping shows the TCP round-trip to each.")
+            Text("Throughput runs on Cloudflare's nearest edge, M-Lab / NDT7, LibreSpeed, or CoverageMap — open measurement networks. Pick a city (or an M-Lab country) to test a specific route; ping shows the TCP round-trip to each.")
                 .font(.caption2).foregroundStyle(Color.nsFaint)
         }
         .disabled(engine.running)

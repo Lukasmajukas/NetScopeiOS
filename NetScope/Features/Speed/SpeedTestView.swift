@@ -424,9 +424,10 @@ struct SpeedTestView: View {
 
     private func providerIcon(_ p: SpeedServer.Provider) -> String {
         switch p {
-        case .cloudflare: return "bolt.horizontal.circle.fill"
-        case .mlab:       return "globe.americas.fill"
-        case .librespeed: return "server.rack"
+        case .cloudflare:  return "bolt.horizontal.circle.fill"
+        case .mlab:        return "globe.americas.fill"
+        case .librespeed:  return "server.rack"
+        case .coveragemap: return "map.circle.fill"
         }
     }
 

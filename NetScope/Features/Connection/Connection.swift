@@ -32,6 +32,7 @@ final class ConnectionMonitor {
     var cellGeneration = ""        // "5G", "4G LTE", "3G", "2G"
     var cellStandalone = ""        // "Standalone" / "Non-Standalone" / ""
     var cellTechRaw = ""           // e.g. "CTRadioAccessTechnologyNRNSA"
+    var cellRadios: [CellRadio] = [] // all active cellular services (dual-SIM aware)
 
     // Public side (works on Wi-Fi and cellular)
     var publicIP = ""
@@ -149,11 +150,19 @@ final class ConnectionMonitor {
         // Off cellular: drop stale modem info so the UI doesn't show 5G on Wi-Fi.
         guard networkType == "Cellular" else {
             cellTechRaw = ""; cellGeneration = ""; cellStandalone = ""; lastNRSeen = nil
+            cellRadios = []
             return
         }
         guard !raw.isEmpty else { return }   // transient empty read — keep last known
 
         cellTechRaw = raw
+        // All active cellular services (dual-SIM): data SIM first.
+        let dict = cti.serviceCurrentRadioAccessTechnology ?? [:]
+        let dataID = cti.dataServiceIdentifier
+        cellRadios = dict.compactMap { id, rat in
+            rat.isEmpty ? nil : CellRadio(id: id, tech: rat, isData: id == dataID)
+        }
+        .sorted { ($0.isData ? 0 : 1) < ($1.isData ? 0 : 1) }
         let gen = cellGenerationLabel(raw)
         let sa = cellStandaloneLabel(raw)
         let now = ProcessInfo.processInfo.systemUptime    // monotonic — immune to clock changes
@@ -166,8 +175,11 @@ final class ConnectionMonitor {
             // Saw 5G within the last 8s but the live read dropped to LTE — that's
             // the classic NSA handover dip, so hold "5G · Non-Standalone" rather
             // than flickering to 4G (and don't keep asserting a stale "Standalone").
+            // Hold the raw too, so the "Radio" row + explanation (which read cellTechRaw)
+            // stay consistent with the held 5G state instead of showing "LTE (4G)".
             cellGeneration = "5G"
             cellStandalone = "Non-Standalone"
+            cellTechRaw = "CTRadioAccessTechnologyNRNSA"
         } else {
             cellGeneration = gen
             cellStandalone = sa
@@ -286,6 +298,55 @@ func cellStandaloneLabel(_ raw: String) -> String {
     if raw.contains("NRNSA") { return "Non-Standalone" }        // 5G anchored to LTE
     if raw.contains("NR") { return "Standalone" }               // true 5G core
     return ""
+}
+
+/// Human-friendly radio name, e.g. "5G NR · Non-Standalone", "LTE (4G)", "HSDPA (3G)".
+func cellTechFriendly(_ raw: String) -> String {
+    let t = raw.replacingOccurrences(of: "CTRadioAccessTechnology", with: "")
+    switch t {
+    case "NR":                                   return "5G NR · Standalone"
+    case "NRNSA":                                return "5G NR · Non-Standalone"
+    case "LTE":                                  return "LTE (4G)"
+    case "WCDMA":                                return "WCDMA (3G)"
+    case "HSDPA":                                return "HSDPA (3G)"
+    case "HSUPA":                                return "HSUPA (3G)"
+    case "CDMA1x":                               return "CDMA 1x"
+    case "CDMAEVDORev0", "CDMAEVDORevA", "CDMAEVDORevB": return "EV-DO (3G)"
+    case "eHRPD":                                return "eHRPD (3G)"
+    case "GPRS":                                 return "GPRS (2G)"
+    case "Edge":                                 return "EDGE (2G)"
+    default:                                     return t.isEmpty ? "—" : t
+    }
+}
+
+/// One-line, plain-English explanation of what the current radio means for the user.
+func cellTechExplain(_ raw: String) -> String {
+    switch cellGenerationLabel(raw) {
+    case "5G":
+        return raw.contains("NRNSA")
+            ? "5G riding on the 4G core (Non-Standalone) — 5G download speeds, but latency closer to LTE. This is the most common form of 5G today."
+            : "Standalone 5G on a pure 5G core — the lowest latency and the full benefit of 5G."
+    case "4G LTE": return "LTE (4G) — the mobile workhorse, typically tens to a couple hundred Mbps."
+    case "3G":     return "3G — legacy data at a few Mbps; most carriers are retiring it."
+    case "2G":     return "2G — minimal data, from the texts-and-voice era."
+    default:       return "Mobile data."
+    }
+}
+
+/// Rough real-world speed ceiling for a generation (educational, not a guarantee).
+func cellCapability(_ gen: String) -> String {
+    if gen.hasPrefix("5G")    { return "up to ~1–4 Gbps" }
+    if gen.contains("LTE")    { return "up to ~150–300 Mbps" }
+    if gen.contains("3G")     { return "up to ~5–40 Mbps" }
+    if gen.contains("2G")     { return "under ~0.3 Mbps" }
+    return "—"
+}
+
+/// One active cellular service (a SIM's current radio), for dual-SIM display.
+struct CellRadio: Identifiable {
+    let id: String       // CoreTelephony service identifier
+    let tech: String     // raw RAT, e.g. "CTRadioAccessTechnologyNRNSA"
+    let isData: Bool     // true for the active data SIM
 }
 
 // MARK: - Map (Apple Maps showing where you're connected)
@@ -476,29 +537,31 @@ struct ConnectionView: View {
                 if !conn.cellStandalone.isEmpty {
                     row("5G mode", conn.cellStandalone)
                 }
-                row("Radio type", techPretty)
+                row("Radio", cellTechFriendly(conn.cellTechRaw))
+                row("Typical speed", cellCapability(conn.cellGeneration))
                 row("Carrier", conn.isp.isEmpty ? "…" : conn.isp)
                 row("Data cost", conn.expensive ? "Metered" : "Unmetered")
             }
-            if !conn.cellStandalone.isEmpty {
+            // Dual-SIM: show each SIM's current radio, data SIM first.
+            if conn.cellRadios.count > 1 {
+                Card("Active radios (dual-SIM)") {
+                    ForEach(conn.cellRadios) { radio in
+                        row(radio.isData ? "Data SIM" : "Other SIM", cellTechFriendly(radio.tech))
+                    }
+                }
+            }
+            // Plain-English explanation of the current radio.
+            if !conn.cellGeneration.isEmpty {
                 Card {
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "info.circle").foregroundStyle(Color.nsAccent)
-                        Text(conn.cellStandalone == "Standalone"
-                             ? "Standalone 5G runs on a pure 5G core — lower latency and the full benefit of 5G."
-                             : "Non-Standalone 5G rides on the existing 4G core for signalling. Common today; speeds are 5G but latency is closer to LTE.")
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .foregroundStyle(Color.nsAccent)
+                        Text(cellTechExplain(conn.cellTechRaw))
                             .font(.caption).foregroundStyle(Color.nsMuted)
                     }
                 }
             }
         }
-    }
-
-    private var techPretty: String {
-        let r = conn.cellTechRaw
-        guard !r.isEmpty else { return "—" }
-        // Strip the "CTRadioAccessTechnology" prefix for display.
-        return r.replacingOccurrences(of: "CTRadioAccessTechnology", with: "")
     }
 
     // Wi-Fi

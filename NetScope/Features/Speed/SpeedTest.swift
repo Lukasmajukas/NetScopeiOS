@@ -288,32 +288,36 @@ final class SpeedTestEngine: NSObject {
         // Latency: Cloudflare uses a tiny HTTP round-trip; M-Lab uses a TCP-connect
         // RTT to the chosen machine (no public HTTP probe path there).
         switch srv.provider {
-        case .cloudflare: (ping, jitter) = await measurePingHTTP()
-        case .mlab:       (ping, jitter) = await measurePingTCP(host: srv.host)
+        case .cloudflare:                     (ping, jitter) = await measurePingHTTP()
+        case .mlab, .librespeed, .coveragemap: (ping, jitter) = await measurePingTCP(host: srv.host)
         }
 
         phase = .downloading
         switch srv.provider {
-        case .cloudflare:
+        case .cloudflare, .librespeed:
             download = await measure(.download, seconds: downSeconds)
             dlBytes = phaseCounter.value
         case .mlab:
             (download, dlBytes) = await ndt7(.download, url: srv.downloadURL, seconds: downSeconds)
+        case .coveragemap:
+            (download, dlBytes) = await coverageMapStream(.download, url: srv.downloadURL, seconds: downSeconds)
         }
 
         phase = .uploading
         switch srv.provider {
-        case .cloudflare:
+        case .cloudflare, .librespeed:
             upload = await measure(.upload, seconds: upSeconds)
             ulBytes = phaseCounter.value
         case .mlab:
             (upload, ulBytes) = await ndt7(.upload, url: srv.uploadURL, seconds: upSeconds)
+        case .coveragemap:
+            (upload, ulBytes) = await coverageMapStream(.upload, url: srv.uploadURL, seconds: upSeconds)
         }
 
-        // A run that moved zero bytes in both directions means we never reached
-        // the server (offline, airplane mode, unreachable/expired M-Lab URL). Mark
-        // it failed and DON'T persist a bogus 0/0/0 row to history or the CSV.
-        if dlBytes == 0 && ulBytes == 0 {
+        // If EITHER leg moved zero bytes the run is invalid — offline (both zero), or a
+        // half-broken server (e.g. a LibreSpeed host whose upload endpoint is dead while
+        // download works). Mark it failed and DON'T persist a bogus 0-on-one-leg row.
+        if dlBytes == 0 || ulBytes == 0 {
             phase = .failed
             live = 0; progress = 0
             running = false
@@ -335,6 +339,13 @@ final class SpeedTestEngine: NSObject {
                                  isVPN: isVPNActive())
         onFinished?(result)
         running = false
+        // CoverageMap: contribute the result to its coverage map. Detached + best-effort so a
+        // slow/blocked POST never holds the engine in the "running" state (the test is done
+        // and saved). The view's per-provider consent gate guarantees consent before a run.
+        if srv.provider == .coveragemap {
+            let r = result, s = srv
+            Task { await CoverageMap.report(r, server: s) }
+        }
     }
 
     /// Set by the view so a completed run can be stored in history.
@@ -389,14 +400,27 @@ final class SpeedTestEngine: NSObject {
 
     private func launch(_ dir: Dir) {
         let task: URLSessionTask
-        switch dir {
-        case .download:
+        switch (server.provider, dir) {
+        case (.cloudflare, .download):
             task = stream.dataTask(with: request("/__down?bytes=100000000"))
-        case .upload:
+        case (.cloudflare, .upload):
             var req = request("/__up")
             req.httpMethod = "POST"
             req.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
             task = stream.uploadTask(with: req, from: uploadBody)
+        case (.librespeed, .download):
+            // garbage.php?ckSize=N streams ~N MB; finite, so the relaunch-on-complete
+            // machinery keeps the pipe full just like Cloudflare's sized download.
+            guard let url = server.downloadURL else { return }
+            task = stream.dataTask(with: URLRequest(url: url))
+        case (.librespeed, .upload):
+            guard let url = server.uploadURL else { return }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+            task = stream.uploadTask(with: req, from: uploadBody)
+        default:
+            return   // M-Lab uses the NDT7 WebSocket path, not these HTTP streams
         }
         // Tag the task with its direction so a stale completion can't relaunch
         // into the wrong phase (a cancelled download must not spawn an upload).
@@ -478,6 +502,12 @@ final class SpeedTestEngine: NSObject {
         case .mlab:
             out.serverCity = server.country.isEmpty ? server.city : "\(server.city), \(server.country)"
             out.server = out.serverCity.isEmpty ? "M-Lab" : "M-Lab · \(out.serverCity)"
+        case .librespeed:
+            out.serverCity = server.city
+            out.server = server.city.isEmpty ? "LibreSpeed" : "LibreSpeed · \(server.city)"
+        case .coveragemap:
+            out.serverCity = server.city
+            out.server = server.city.isEmpty ? "CoverageMap" : "CoverageMap · \(server.city)"
         }
         return out
     }
@@ -585,6 +615,78 @@ final class SpeedTestEngine: NSObject {
             box.value = v
         } else if let tcp = j["TCPInfo"] as? [String: Any], let v = mbps(tcp, "BytesReceived") {
             box.value = v
+        }
+    }
+
+    // MARK: CoverageMap — WebSocket download (START → binary frames) / upload (binary burst)
+    //
+    // Opens `streams` sockets to wss://host:port/v1/ws. Download: each sends "START <kb> 500"
+    // and the server streams binary frames we count; we re-issue START periodically to keep
+    // the pipe full. Upload: each socket bursts fixed binary chunks (server ACKs are ignored).
+
+    private func coverageMapStream(_ dir: Dir, url: URL?, seconds: Double) async -> (Double, Int) {
+        guard let url else { return (0, 0) }
+        let window = ByteCounter()
+        let total  = ByteCounter()
+        // Tuned for CoverageMap: 6 download sockets (more parallelism for fast links),
+        // 512 KB frames, and two queued batches per socket so a finished 500-frame batch
+        // never leaves a gap before the periodic re-START tops it up.
+        let socketCount = dir == .download ? 6 : 4
+        let startCmd = "START 512 500"
+        var tasks: [URLSessionWebSocketTask] = []
+        let deadline = Date().addingTimeInterval(seconds)
+        for _ in 0..<socketCount {
+            let t = wsSession.webSocketTask(with: url)
+            t.resume()
+            if dir == .download {
+                t.send(.string(startCmd)) { _ in }   // first batch
+                t.send(.string(startCmd)) { _ in }   // queue a second to avoid mid-batch gaps
+                Self.cmReceive(t, window: window, total: total)
+            } else {
+                Self.pumpSend(t, buf: Data(count: 1 << 18), window: window, total: total, deadline: deadline)
+            }
+            tasks.append(t)
+        }
+
+        live = 0; progress = 0; scaleMax = 100
+        let t0 = Date()
+        let warmup = min(2.0, seconds * 0.25)
+        var steadyStart: Date? = nil
+        var lastStart = Date()
+        window.reset()
+        while Date().timeIntervalSince(t0) < seconds {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            let t = Date()
+            if steadyStart == nil, t.timeIntervalSince(t0) >= warmup { window.reset(); steadyStart = t }
+            // Keep download frames flowing (each START yields a finite 500-frame batch).
+            if dir == .download, t.timeIntervalSince(lastStart) > 0.5 {
+                for task in tasks { task.send(.string(startCmd)) { _ in } }
+                lastStart = t
+            }
+            let base = steadyStart ?? t0
+            let span = max(0.001, t.timeIntervalSince(base))
+            let avg = Double(window.value) * 8 / span / 1e6
+            live = avg
+            if avg > scaleMax { scaleMax = niceMax(avg) }
+            if let steadyStart {
+                progress = min(1, t.timeIntervalSince(steadyStart) / max(0.001, seconds - warmup))
+            } else {
+                progress = min(0.2, t.timeIntervalSince(t0) / warmup * 0.2)
+            }
+        }
+        tasks.forEach { $0.cancel(with: .goingAway, reason: nil) }
+        let base = steadyStart ?? t0
+        let span = max(0.001, Date().timeIntervalSince(base))
+        return (Double(window.value) * 8 / span / 1e6, total.value)
+    }
+
+    /// Recursively receive CoverageMap download frames (binary), counting bytes.
+    nonisolated private static func cmReceive(_ task: URLSessionWebSocketTask,
+                                              window: ByteCounter, total: ByteCounter) {
+        task.receive { result in
+            guard case .success(let msg) = result else { return }
+            if case .data(let d) = msg { window.add(d.count); total.add(d.count) }
+            cmReceive(task, window: window, total: total)
         }
     }
 
@@ -780,29 +882,34 @@ enum CSVImport {
 // selectable locations with per-server ping.
 
 struct SpeedServer: Identifiable, Equatable, Sendable {
-    enum Provider: String, Sendable { case cloudflare, mlab }
+    enum Provider: String, Sendable { case cloudflare, mlab, librespeed, coveragemap }
 
     let id: String
     let provider: Provider
     let city: String
     let country: String
     let host: String          // hostname used for the TCP-connect ping
-    var downloadURL: URL?     // M-Lab: pre-signed wss download URL
-    var uploadURL: URL?       // M-Lab: pre-signed wss upload URL
+    var downloadURL: URL?     // M-Lab: wss download · LibreSpeed: https garbage URL
+    var uploadURL: URL?       // M-Lab: wss upload · LibreSpeed: https empty URL
+    var sponsor: String = ""  // LibreSpeed: donating sponsor
     var pingMs: Double?
 
     /// Short place label for the picker row.
     var shortPlace: String {
         switch provider {
-        case .cloudflare: return "Nearest (auto)"
-        case .mlab:       return country.isEmpty ? city : "\(city), \(country)"
+        case .cloudflare:  return "Nearest (auto)"
+        case .mlab:        return country.isEmpty ? city : "\(city), \(country)"
+        case .librespeed:  return city.isEmpty ? "LibreSpeed server" : city
+        case .coveragemap: return city.isEmpty ? "CoverageMap server" : city
         }
     }
     /// Sub-label naming the backbone/protocol.
     var detail: String {
         switch provider {
-        case .cloudflare: return "Cloudflare · anycast edge"
-        case .mlab:       return "M-Lab · NDT7"
+        case .cloudflare:  return "Cloudflare · anycast edge"
+        case .mlab:        return "M-Lab · NDT7"
+        case .librespeed:  return sponsor.isEmpty ? "LibreSpeed" : "LibreSpeed · \(sponsor)"
+        case .coveragemap: return "CoverageMap"
         }
     }
 
@@ -817,39 +924,133 @@ struct SpeedServer: Identifiable, Equatable, Sendable {
 final class ServerDirectory {
     private(set) var servers: [SpeedServer] = [.cloudflare]
     var selectedID: SpeedServer.ID = SpeedServer.cloudflare.id
+    /// True once the user explicitly picks a server, so refresh stops overriding it with
+    /// the CoverageMap default.
+    var userSelected = false
     private(set) var loading = false
+
+    /// Optional ISO 3166-1 country filter for M-Lab (nil = geo-nearest). Changing
+    /// it and refreshing re-queries M-Lab's Locate API for that country's servers.
+    var mlabCountry: String? = nil
+
+    /// LibreSpeed and CoverageMap lists are static across the M-Lab country filter, so
+    /// fetch + ping each once and reuse (re-pinged only on an explicit manual refresh).
+    @ObservationIgnored private var libreCache: [SpeedServer] = []
+    @ObservationIgnored private var cmCache: [SpeedServer] = []
+    // Coalesce a refresh requested while one is already running (e.g. a second country
+    // tap mid-fetch), so the final fetch always reflects the user's last choice.
+    @ObservationIgnored private var pendingRefresh = false
+    @ObservationIgnored private var pendingReping = false
+    // The CoverageMap default is applied ONCE (first successful load), so later refreshes
+    // (manual re-ping, country change) don't snap the selection back to CoverageMap.
+    @ObservationIgnored private var hasDefaulted = false
+
+    /// Countries offered in the M-Lab location menu (label, ISO code; nil = nearest).
+    static let countries: [(name: String, code: String?)] = [
+        ("Nearest", nil), ("United States", "US"), ("United Kingdom", "GB"),
+        ("Canada", "CA"), ("Germany", "DE"), ("France", "FR"), ("Netherlands", "NL"),
+        ("Spain", "ES"), ("Italy", "IT"), ("Japan", "JP"), ("Singapore", "SG"),
+        ("Australia", "AU"), ("India", "IN"), ("Brazil", "BR"), ("South Africa", "ZA"),
+    ]
 
     /// The currently-selected server (falls back to the first if the id is stale).
     var selected: SpeedServer {
         servers.first { $0.id == selectedID } ?? servers.first ?? .cloudflare
     }
 
-    /// Rebuild the list (Cloudflare + nearby M-Lab cities) and ping each.
-    func refresh() async {
-        guard !loading else { return }
+    /// Rebuild the list: Cloudflare + M-Lab (for the chosen country) + LibreSpeed cities,
+    /// each pinged. M-Lab is re-fetched every time (country may have changed); LibreSpeed
+    /// is fetched/pinged once and cached so changing country doesn't re-hit donated hosts.
+    /// `repingLibre` re-checks the cached LibreSpeed hosts too (used by the manual refresh
+    /// button); country-change refreshes leave it false so we don't re-ping donated hosts
+    /// on every menu tap.
+    func refresh(repingLibre: Bool = false) async {
+        // A refresh requested while one is running is coalesced, not dropped, so a rapid
+        // country change still ends with a fetch for the country the user last picked.
+        if loading {
+            pendingRefresh = true
+            pendingReping = pendingReping || repingLibre
+            return
+        }
         loading = true
         defer { loading = false }
 
-        var list: [SpeedServer] = [.cloudflare]
-        list += await MLabLocate.fetch()
-
-        await withTaskGroup(of: (SpeedServer.ID, Double?).self) { group in
-            for s in list {
-                group.addTask { (s.id, await NetLatency.connect(host: s.host, port: 443)) }
-            }
-            for await (id, ms) in group {
-                if let i = list.firstIndex(where: { $0.id == id }) { list[i].pingMs = ms }
-            }
+        var reping = repingLibre
+        while true {
+            await performRefresh(repingLibre: reping)
+            if !pendingRefresh { break }
+            pendingRefresh = false
+            reping = pendingReping
+            pendingReping = false
         }
-        // Reachable servers first, then by ascending ping (display order only).
+    }
+
+    private func performRefresh(repingLibre: Bool) async {
+        if libreCache.isEmpty {
+            var ls = await LibreSpeed.fetch()
+            await Self.ping(&ls)            // first load: fetch + ping
+            libreCache = ls
+        } else if repingLibre {
+            var ls = libreCache             // explicit user refresh: re-check stale/dead hosts
+            await Self.ping(&ls)
+            libreCache = ls
+        }
+
+        if cmCache.isEmpty {
+            var cm = await CoverageMap.fetch()
+            await Self.ping(&cm)
+            cmCache = cm
+        } else if repingLibre {
+            var cm = cmCache
+            await Self.ping(&cm)
+            cmCache = cm
+        }
+
+        var dynamic: [SpeedServer] = [.cloudflare]
+        dynamic += await MLabLocate.fetch(country: mlabCountry)
+        await Self.ping(&dynamic)
+
+        var list = dynamic + libreCache + cmCache
         list.sort { ($0.pingMs ?? .infinity) < ($1.pingMs ?? .infinity) }
         servers = list
-        // Keep the user's pick if it's still present; otherwise fall back to the
-        // privacy-preserving default (Cloudflare), NOT the lowest-ping server —
-        // an M-Lab default would publish data without an explicit choice.
-        if !list.contains(where: { $0.id == selectedID }) {
-            selectedID = SpeedServer.cloudflare.id
+        // CoverageMap is the PRIMARY backbone: default to its nearest server ONCE (first
+        // load), or recover if the current selection vanished. A user's explicit pick — or a
+        // selection that's still present after the first default — is preserved, so a manual
+        // refresh or M-Lab country change doesn't snap back to CoverageMap.
+        let stillPresent = list.contains(where: { $0.id == selectedID })
+        if userSelected && stillPresent {
+            // keep the user's explicit pick
+        } else if !hasDefaulted || !stillPresent {
+            selectedID = list.first(where: { $0.provider == .coveragemap })?.id
+                ?? SpeedServer.cloudflare.id
+            hasDefaulted = true
+            userSelected = false
         }
+    }
+
+    /// Filter M-Lab by country, then select that country's nearest M-Lab server (so the
+    /// country control actually changes what gets tested, not just the listed rows).
+    func selectMLabCountry(_ code: String?) async {
+        mlabCountry = code
+        await refresh()
+        if let m = servers.first(where: { $0.provider == .mlab }) {
+            selectedID = m.id
+            userSelected = true
+        }
+    }
+
+    /// Measure a TCP-connect RTT to each server in parallel and write it back.
+    private static func ping(_ servers: inout [SpeedServer]) async {
+        let hosts = servers.map { ($0.id, $0.host) }
+        let pings: [SpeedServer.ID: Double] = await withTaskGroup(of: (SpeedServer.ID, Double?).self) { group in
+            for (id, host) in hosts {
+                group.addTask { (id, await NetLatency.connect(host: host, port: 443)) }
+            }
+            var acc: [SpeedServer.ID: Double] = [:]
+            for await (id, ms) in group { if let ms { acc[id] = ms } }
+            return acc
+        }
+        for i in servers.indices { servers[i].pingMs = pings[servers[i].id] }
     }
 }
 
@@ -871,8 +1072,12 @@ enum MLabLocate {
         return URLSession(configuration: cfg)
     }()
 
-    static func fetch() async -> [SpeedServer] {
-        guard let url = URL(string: "https://locate.measurementlab.net/v2/nearest/ndt/ndt7") else { return [] }
+    static func fetch(country: String? = nil) async -> [SpeedServer] {
+        var comps = URLComponents(string: "https://locate.measurementlab.net/v2/nearest/ndt/ndt7")
+        if let country, !country.isEmpty {
+            comps?.queryItems = [URLQueryItem(name: "country", value: country)]
+        }
+        guard let url = comps?.url else { return [] }
         var req = URLRequest(url: url)
         req.setValue("NetScope-iOS/1.0 (network diagnostics)", forHTTPHeaderField: "User-Agent")
         guard let (d, _) = try? await session.data(for: req),
@@ -891,6 +1096,88 @@ enum MLabLocate {
                 downloadURL: dl, uploadURL: ul, pingMs: nil))
         }
         return out
+    }
+}
+
+/// LibreSpeed public backend list — ~40 community-donated HTTPS servers worldwide.
+/// Each entry self-describes its download (garbage) / upload (empty) URLs, so the app
+/// can enumerate cities, ping each, and run a plain-HTTPS test against the chosen one.
+/// (Open-source, LGPL; servers are sponsor-donated, so we health-check via ping and
+/// run the actual throughput test only against the server the user explicitly picks.)
+enum LibreSpeed {
+    static let listURL = "https://librespeed.org/backend-servers/servers.json"
+
+    private struct Entry: Decodable {
+        let name: String
+        let server: String
+        let dlURL: String
+        let ulURL: String
+        let sponsorName: String?
+    }
+
+    private static let session: URLSession = {
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.timeoutIntervalForRequest = 8
+        cfg.waitsForConnectivity = false
+        return URLSession(configuration: cfg)
+    }()
+
+    static func fetch() async -> [SpeedServer] {
+        guard let url = URL(string: listURL),
+              let (d, _) = try? await session.data(from: url),
+              let entries = try? JSONDecoder().decode([Entry].self, from: d) else { return [] }
+
+        var out: [SpeedServer] = []
+        for e in entries {
+            guard let base = httpsBase(e.server),
+                  let dl = URL(string: base + strip(e.dlURL) + "?ckSize=100"),
+                  let ul = URL(string: base + strip(e.ulURL)),
+                  let host = URL(string: base)?.host else { continue }
+            let (city, sponsor) = splitName(e.name, fallback: e.sponsorName)
+            out.append(SpeedServer(
+                id: "ls-\(host)", provider: .librespeed,
+                city: city, country: "", host: host,
+                downloadURL: dl, uploadURL: ul, sponsor: sponsor, pingMs: nil))
+        }
+        return out
+    }
+
+    /// Force HTTPS (some bases are protocol-relative `//host/`) + a single trailing slash,
+    /// so every server is ATS-safe for a sandboxed iOS app.
+    private static func httpsBase(_ s: String) -> String? {
+        var b = s.trimmingCharacters(in: .whitespaces)
+        guard !b.isEmpty else { return nil }
+        if b.hasPrefix("//") { b = "https:" + b }
+        else if b.hasPrefix("http://") { b = "https://" + b.dropFirst("http://".count) }
+        else if !b.hasPrefix("https://") { b = "https://" + b }
+        if !b.hasSuffix("/") { b += "/" }
+        return b
+    }
+    private static func strip(_ p: String) -> String { p.hasPrefix("/") ? String(p.dropFirst()) : p }
+
+    /// "Amsterdam, Netherlands (Clouvider)" → ("Amsterdam, Netherlands", "Clouvider").
+    /// Prefers the explicit `sponsorName` field; only falls back to parsing a trailing
+    /// balanced "(…)" out of the name (anchored on the LAST one, so place names that
+    /// themselves contain parentheses aren't garbled).
+    private static func splitName(_ name: String, fallback: String?) -> (String, String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        // Strip a trailing balanced " (…)" group off the display city.
+        func cityWithoutTrailingParen(_ s: String) -> String {
+            if s.hasSuffix(")"), let r = s.range(of: " (", options: .backwards) {
+                return String(s[..<r.lowerBound]).trimmingCharacters(in: .whitespaces)
+            }
+            return s
+        }
+        if let fb = fallback?.trimmingCharacters(in: .whitespaces), !fb.isEmpty {
+            let city = cityWithoutTrailingParen(trimmed)
+            return (city.isEmpty ? trimmed : city, fb)
+        }
+        if trimmed.hasSuffix(")"), let r = trimmed.range(of: " (", options: .backwards) {
+            let city = String(trimmed[..<r.lowerBound]).trimmingCharacters(in: .whitespaces)
+            var sp = String(trimmed[r.upperBound...]); sp.removeLast()   // drop trailing ")"
+            if !sp.contains(")") { return (city, sp.trimmingCharacters(in: .whitespaces)) }
+        }
+        return (trimmed, "")
     }
 }
 

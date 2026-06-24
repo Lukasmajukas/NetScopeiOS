@@ -61,26 +61,76 @@ struct SpeedGauge: View {
 struct SpeedTestView: View {
     @State private var engine = SpeedTestEngine()
     @State private var directory = ServerDirectory()
+    @State private var summarizer = AISummarizer()
     @Environment(HistoryStore.self) private var history
     @Environment(ConnectionMonitor.self) private var connection
     @Environment(LocationProvider.self) private var location
     @Environment(ProManager.self) private var pro
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showSettings = false
     // One-time informed consent before the first M-Lab test, since M-Lab
     // publishes every test (incl. the user's IP) as open data. Bump the key
     // suffix if the disclosure text materially changes, to re-prompt.
+    // One-time informed consent before the first test against each external backbone
+    // (M-Lab publishes results as open data; LibreSpeed servers are third-party donated
+    // hosts). Cloudflare needs none. Bump the key suffix if the disclosure text changes.
     @AppStorage("mlabConsentAcceptedV1") private var mlabConsented = false
-    @State private var showMLabConsent = false
+    @AppStorage("libreConsentAcceptedV1") private var libreConsented = false
+    @AppStorage("cmConsentAcceptedV1") private var cmConsented = false
+    @State private var showConsent = false
+    @State private var consentProvider: SpeedServer.Provider = .mlab
 
     /// Starts a test, but routes the first M-Lab run through a consent prompt
-    /// (M-Lab publishes results, including the user's IP, as open data).
+    /// Whether running against this provider still needs a one-time consent prompt.
+    private func needsConsent(_ p: SpeedServer.Provider) -> Bool {
+        switch p {
+        case .cloudflare:  return false             // anycast, not published, not third-party
+        case .mlab:        return !mlabConsented
+        case .librespeed:  return !libreConsented
+        case .coveragemap: return !cmConsented
+        }
+    }
+
+    /// Routes the first run against any external backbone (M-Lab or LibreSpeed) through
+    /// its consent prompt; Cloudflare runs immediately.
     private func startTest() {
         let server = directory.selected
-        if server.provider == .mlab && !mlabConsented {
-            showMLabConsent = true
+        if needsConsent(server.provider) {
+            consentProvider = server.provider
+            showConsent = true
             return
         }
         engine.start(runContext(), server: server)
+    }
+
+    /// Auto-start a test from Shortcuts/Siri automation. Waits for server discovery so it
+    /// targets the same server the manual button would (the CoverageMap primary default),
+    /// then either runs it or — if that backbone needs one-time consent — surfaces the consent
+    /// sheet rather than silently doing nothing.
+    private func autoRunIfAllowed() {
+        Task {
+            if directory.servers.count <= 1 { await directory.refresh() }
+            // Wait (bounded) for discovery to populate the directory so the choice is
+            // deterministic regardless of which task kicked the refresh off.
+            for _ in 0..<20 where directory.servers.count <= 1 {
+                try? await Task.sleep(nanoseconds: 200_000_000)   // up to ~4s on a slow network
+            }
+            guard !engine.running else { return }
+            let s = directory.selected
+            if needsConsent(s.provider) {
+                consentProvider = s.provider
+                showConsent = true                 // one-time prompt, then the user can run it
+            } else {
+                engine.start(runContext(), server: s)
+            }
+        }
+    }
+
+    /// Consume the one-shot flag set by the Siri "Run Speed Test" App Intent.
+    private func consumeSiriRun() {
+        guard UserDefaults.standard.bool(forKey: kSiriRunFlag) else { return }
+        UserDefaults.standard.set(false, forKey: kSiriRunFlag)
+        autoRunIfAllowed()
     }
 
     /// Snapshot of the current connection used to stamp the saved result.
@@ -126,6 +176,7 @@ struct SpeedTestView: View {
                 if engine.phase == .failed { failedNote }
                 runButton
             }
+            aiCard
             serverCard
             trendCard
             historyCard
@@ -141,31 +192,35 @@ struct SpeedTestView: View {
                 .environment(location)
                 .environment(pro)
         }
-        .sheet(isPresented: $showMLabConsent) {
-            MLabConsentSheet(
+        .sheet(isPresented: $showConsent) {
+            ServerConsentSheet(
+                provider: consentProvider,
                 place: directory.selected.shortPlace,
                 onAgree: {
-                    mlabConsented = true
-                    showMLabConsent = false
+                    switch consentProvider {
+                    case .mlab:        mlabConsented = true
+                    case .librespeed:  libreConsented = true
+                    case .coveragemap: cmConsented = true
+                    case .cloudflare:  break
+                    }
+                    showConsent = false
                     engine.start(runContext(), server: directory.selected)
                 },
-                onCancel: { showMLabConsent = false })
+                onCancel: { showConsent = false })
         }
         .onAppear {
-            engine.onFinished = { history.add($0) }
+            // A new saved result invalidates any prior AI summary.
+            engine.onFinished = { history.add($0); summarizer.reset() }
             location.start()   // warm up location so a finished test can record lat/lon
-            // Optional: auto-start a test on launch (Shortcuts/automation, or `-autorun 1`).
-            if UserDefaults.standard.bool(forKey: "autorun") {
-                Task {
-                    try? await Task.sleep(nanoseconds: 600_000_000)   // let the path monitor settle
-                    // Automation never triggers the consent prompt: only auto-run
-                    // when the selected backbone doesn't require it (Cloudflare, or
-                    // an M-Lab the user already consented to).
-                    let s = directory.selected
-                    let allowed = s.provider != .mlab || mlabConsented
-                    if !engine.running && allowed { engine.start(runContext(), server: s) }
-                }
-            }
+            summarizer.refreshAvailability()
+            consumeSiriRun()
+            // Launch-only autorun (`-autorun 1` / Shortcuts automation).
+            if UserDefaults.standard.bool(forKey: "autorun") { autoRunIfAllowed() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Siri can foreground an app that's ALREADY open (onAppear won't refire), so
+            // also consume the run flag when the scene becomes active.
+            if phase == .active { consumeSiriRun() }
         }
         // Declarative haptics keyed to the test phase (replaces manual generators).
         .sensoryFeedback(trigger: engine.phase) { _, new in
@@ -221,7 +276,7 @@ struct SpeedTestView: View {
     private var failedNote: some View {
         HStack(spacing: 8) {
             Image(systemName: "wifi.exclamationmark").foregroundStyle(Color(hex: 0xff6b6b))
-            Text("Couldn't reach the server. Check your connection and try again — nothing was saved.")
+            Text("The test couldn't complete — one direction didn't respond (offline, or this server's download or upload stalled). Nothing was saved; try again or pick another server.")
                 .font(.caption).foregroundStyle(Color.nsTxt)
             Spacer(minLength: 0)
         }
@@ -253,16 +308,82 @@ struct SpeedTestView: View {
 
     // MARK: Server / location picker
 
+    // MARK: Apple Intelligence summary
+
+    @ViewBuilder
+    private var aiCard: some View {
+        // Only when on-device Apple Intelligence is available and there's a result to read.
+        if summarizer.available, let latest = history.items.first {
+            Card {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(Color.nsAccent)
+                        .symbolEffect(.variableColor.iterative, isActive: summarizer.state == .generating)
+                    Text("APPLE INTELLIGENCE")
+                        .font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(Color.nsMuted)
+                    Spacer()
+                }
+                switch summarizer.state {
+                case .idle:
+                    Button { Task { await summarizer.summarize(latest) } } label: {
+                        Text("Summarise my connection").font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.nsAccent)
+                            .padding(.horizontal, 14).padding(.vertical, 9)
+                            .nsGlassCapsule()
+                    }
+                case .generating:
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Thinking on-device…").font(.caption).foregroundStyle(Color.nsFaint)
+                    }
+                case .done(let text):
+                    Text(text).font(.subheadline).foregroundStyle(Color.nsTxt)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button("Regenerate") { Task { await summarizer.summarize(latest) } }
+                        .font(.caption2).foregroundStyle(Color.nsFaint)
+                case .failed(let msg):
+                    Text(msg).font(.caption).foregroundStyle(Color.nsFaint)
+                }
+                Text("Generated on-device by Apple Intelligence — nothing leaves your iPhone.")
+                    .font(.caption2).foregroundStyle(Color.nsFaint)
+            }
+        }
+    }
+
     private var serverCard: some View {
         Card {
             HStack {
                 Text("TEST SERVER")
                     .font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(Color.nsMuted)
                 Spacer()
-                Button { Task { await directory.refresh() } } label: {
+                Button { Task { await directory.refresh(repingLibre: true) } } label: {
                     Image(systemName: "arrow.clockwise")
                         .symbolEffect(.rotate, options: .repeating, isActive: directory.loading)
                         .foregroundStyle(Color.nsAccent)
+                }
+                .disabled(directory.loading)
+            }
+            // M-Lab can return servers for a chosen country, not just the nearest.
+            HStack {
+                Text("M-Lab country").font(.caption).foregroundStyle(Color.nsMuted)
+                Spacer()
+                Menu {
+                    ForEach(ServerDirectory.countries, id: \.name) { c in
+                        Button {
+                            if directory.mlabCountry != c.code {
+                                Task { await directory.selectMLabCountry(c.code) }
+                            }
+                        } label: {
+                            if directory.mlabCountry == c.code { Label(c.name, systemImage: "checkmark") }
+                            else { Text(c.name) }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(mlabCountryName).font(.caption.weight(.semibold))
+                        Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                    }
+                    .foregroundStyle(Color.nsAccent)
                 }
                 .disabled(directory.loading)
             }
@@ -273,7 +394,7 @@ struct SpeedTestView: View {
                 }
             }
             ForEach(directory.servers) { serverRow($0) }
-            Text("Throughput runs on Cloudflare's nearest edge or M-Lab / NDT7 — an open-source internet measurement network. Pick a city to test a specific route; ping shows the TCP round-trip to each.")
+            Text("Throughput runs on Cloudflare's nearest edge, M-Lab / NDT7, LibreSpeed, or CoverageMap — open measurement networks. Pick a city (or an M-Lab country) to test a specific route; ping shows the TCP round-trip to each.")
                 .font(.caption2).foregroundStyle(Color.nsFaint)
         }
         .disabled(engine.running)
@@ -282,9 +403,9 @@ struct SpeedTestView: View {
 
     private func serverRow(_ s: SpeedServer) -> some View {
         let isSelected = directory.selectedID == s.id
-        return Button { directory.selectedID = s.id } label: {
+        return Button { directory.selectedID = s.id; directory.userSelected = true } label: {
             HStack(spacing: 12) {
-                Image(systemName: s.provider == .cloudflare ? "bolt.horizontal.circle.fill" : "globe.americas.fill")
+                Image(systemName: providerIcon(s.provider))
                     .font(.system(size: 18))
                     .foregroundStyle(isSelected ? Color.nsAccent : Color.nsFaint)
                     .frame(width: 22)
@@ -304,6 +425,19 @@ struct SpeedTestView: View {
         }
         .buttonStyle(.plain)
         .overlay(alignment: .bottom) { Divider().overlay(Color.nsLine) }
+    }
+
+    private var mlabCountryName: String {
+        ServerDirectory.countries.first { $0.code == directory.mlabCountry }?.name ?? "Nearest"
+    }
+
+    private func providerIcon(_ p: SpeedServer.Provider) -> String {
+        switch p {
+        case .cloudflare:  return "bolt.horizontal.circle.fill"
+        case .mlab:        return "globe.americas.fill"
+        case .librespeed:  return "server.rack"
+        case .coveragemap: return "map.circle.fill"
+        }
     }
 
     private func pingText(_ ms: Double?) -> String {
@@ -453,31 +587,78 @@ struct SpeedTestView: View {
 /// M-Lab publishes every test (including the user's IP, the time, and the
 /// measured speeds) as an open, CC0-licensed public dataset — so this names
 /// that consequence plainly and requires an affirmative tap before any run.
-struct MLabConsentSheet: View {
+struct ServerConsentSheet: View {
+    let provider: SpeedServer.Provider
     let place: String
     let onAgree: () -> Void
     let onCancel: () -> Void
+
+    private var icon: String {
+        switch provider {
+        case .mlab: return "globe.americas.fill"
+        case .coveragemap: return "map.circle.fill"
+        default: return "server.rack"
+        }
+    }
+    private var network: String {
+        switch provider {
+        case .mlab: return "M-Lab"
+        case .coveragemap: return "CoverageMap"
+        default: return "LibreSpeed"
+        }
+    }
+    private var title: String {
+        switch provider {
+        case .mlab: return "Public measurement"
+        case .coveragemap: return "Coverage contribution"
+        default: return "Third-party server"
+        }
+    }
+    private var lead: String {
+        switch provider {
+        case .mlab:
+            return "You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it."
+        case .coveragemap:
+            return "You picked a **CoverageMap** server. CoverageMap builds a crowd-sourced map of network coverage from speed tests."
+        default:
+            return "You picked a **LibreSpeed** server. These are community-donated servers run by third parties (ISPs, hosts), **not operated by NetScope**."
+        }
+    }
+    private var bullets: [String] {
+        switch provider {
+        case .mlab:
+            return ["Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.",
+                    "This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.",
+                    "Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published."]
+        case .coveragemap:
+            return ["Running this test sends your **public IP address** and test traffic to a CoverageMap server.",
+                    "Your **result** — IP, approximate location, and measured speeds — is **uploaded to CoverageMap** to contribute to its public coverage map.",
+                    "Prefer not to contribute? Tap **Cancel** and choose **Cloudflare** — it stays on your device."]
+        default:
+            return ["Running this test sends your **public IP address** and full-rate test traffic to a **third-party server NetScope doesn't control**.",
+                    "The result isn't published as an open dataset, but the host operator can see your IP and connection — treat it like visiting any third-party website.",
+                    "Prefer to stick with a first-party backbone? Tap **Cancel** and choose **Cloudflare**."]
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack(spacing: 14) {
-                        Image(systemName: "globe.americas.fill")
+                        Image(systemName: icon)
                             .font(.system(size: 30)).foregroundStyle(Color.nsAccent)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Public measurement").font(.title3.weight(.bold)).foregroundStyle(Color.nsTxt)
-                            Text("M-Lab · \(place)").font(.caption).foregroundStyle(Color.nsFaint)
+                            Text(title)
+                                .font(.title3.weight(.bold)).foregroundStyle(Color.nsTxt)
+                            Text("\(network) · \(place)").font(.caption).foregroundStyle(Color.nsFaint)
                         }
                         Spacer()
                     }
-                    Text("You picked an **M-Lab** server. M-Lab is an open research network — it makes internet performance data public so anyone can study it.")
-                        .font(.subheadline).foregroundStyle(Color.nsTxt)
+                    Text(.init(lead)).font(.subheadline).foregroundStyle(Color.nsTxt)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        bullet("Running this test publishes your **public IP address**, the **time**, and your **measured speeds** as open data under a CC0 (public-domain) license.")
-                        bullet("This is done by M-Lab, not by NetScope — and once published, **it cannot be undone or deleted**.")
-                        bullet("Prefer to keep tests private? Tap **Cancel** and choose the **Cloudflare** server instead — it isn't published.")
+                        ForEach(bullets, id: \.self) { bullet($0) }
                     }
                     .padding(16)
                     .background(Color.nsSurface2, in: RoundedRectangle(cornerRadius: 14))

@@ -100,17 +100,20 @@ final class ConnectionMonitor {
                 self.hasIPv6 = Self.hasGlobalIPv6()
                 self.readCellular()
 
-                if self.networkType == "Wi-Fi" {
-                    await self.refreshSSID()
-                } else {
-                    self.ssid = ""; self.bssid = ""; self.signalStrength = -1
-                }
-
-                // Re-resolve the public IP / carrier only when the link changes.
+                // SSID + public IP are link-scoped — refresh only when the link TYPE changes,
+                // not on every path update. Path updates fire repeatedly during a speed test,
+                // and each Wi-Fi-info request spams the log via NEHotspotNetwork ("nehelper sent
+                // invalid result code [1]") when the "Access Wi-Fi Information" entitlement isn't
+                // present, so gating it here avoids that churn.
                 if self.networkType != self.lastType {
                     self.lastType = self.networkType
                     self.publicIP = ""; self.isp = ""; self.city = ""; self.region = ""
                     if self.online { self.refreshPublicInfo() }
+                    if self.networkType == "Wi-Fi" {
+                        await self.refreshSSID()
+                    } else {
+                        self.ssid = ""; self.bssid = ""; self.signalStrength = -1
+                    }
                 }
             }
         }

@@ -1002,10 +1002,13 @@ final class ServerDirectory {
         var list = dynamic + libreCache + cmCache
         list.sort { ($0.pingMs ?? .infinity) < ($1.pingMs ?? .infinity) }
         servers = list
-        // Keep the user's pick if still present; otherwise fall back to the
-        // privacy-preserving default (Cloudflare), NOT the lowest-ping server.
-        if !list.contains(where: { $0.id == selectedID }) {
-            selectedID = SpeedServer.cloudflare.id
+        // CoverageMap is the PRIMARY backbone: unless the user explicitly picked a server
+        // that's still present, default to the nearest CoverageMap server (falling back to
+        // Cloudflare only if CoverageMap discovery failed).
+        if !(userSelected && list.contains(where: { $0.id == selectedID })) {
+            selectedID = list.first(where: { $0.provider == .coveragemap })?.id
+                ?? SpeedServer.cloudflare.id
+            userSelected = false
         }
     }
 

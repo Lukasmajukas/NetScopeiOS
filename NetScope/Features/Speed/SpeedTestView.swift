@@ -188,9 +188,10 @@ struct SpeedTestView: View {
                 place: directory.selected.shortPlace,
                 onAgree: {
                     switch consentProvider {
-                    case .mlab:       mlabConsented = true
-                    case .librespeed: libreConsented = true
-                    case .cloudflare: break
+                    case .mlab:        mlabConsented = true
+                    case .librespeed:  libreConsented = true
+                    case .coveragemap: cmConsented = true
+                    case .cloudflare:  break
                     }
                     showConsent = false
                     engine.start(runContext(), server: directory.selected)

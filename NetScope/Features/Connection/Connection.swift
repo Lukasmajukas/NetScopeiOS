@@ -534,29 +534,31 @@ struct ConnectionView: View {
                 if !conn.cellStandalone.isEmpty {
                     row("5G mode", conn.cellStandalone)
                 }
-                row("Radio type", techPretty)
+                row("Radio", cellTechFriendly(conn.cellTechRaw))
+                row("Typical speed", cellCapability(conn.cellGeneration))
                 row("Carrier", conn.isp.isEmpty ? "…" : conn.isp)
                 row("Data cost", conn.expensive ? "Metered" : "Unmetered")
             }
-            if !conn.cellStandalone.isEmpty {
+            // Dual-SIM: show each SIM's current radio, data SIM first.
+            if conn.cellRadios.count > 1 {
+                Card("Active radios (dual-SIM)") {
+                    ForEach(conn.cellRadios) { radio in
+                        row(radio.isData ? "Data SIM" : "Other SIM", cellTechFriendly(radio.tech))
+                    }
+                }
+            }
+            // Plain-English explanation of the current radio.
+            if !conn.cellGeneration.isEmpty {
                 Card {
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "info.circle").foregroundStyle(Color.nsAccent)
-                        Text(conn.cellStandalone == "Standalone"
-                             ? "Standalone 5G runs on a pure 5G core — lower latency and the full benefit of 5G."
-                             : "Non-Standalone 5G rides on the existing 4G core for signalling. Common today; speeds are 5G but latency is closer to LTE.")
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .foregroundStyle(Color.nsAccent)
+                        Text(cellTechExplain(conn.cellTechRaw))
                             .font(.caption).foregroundStyle(Color.nsMuted)
                     }
                 }
             }
         }
-    }
-
-    private var techPretty: String {
-        let r = conn.cellTechRaw
-        guard !r.isEmpty else { return "—" }
-        // Strip the "CTRadioAccessTechnology" prefix for display.
-        return r.replacingOccurrences(of: "CTRadioAccessTechnology", with: "")
     }
 
     // Wi-Fi
